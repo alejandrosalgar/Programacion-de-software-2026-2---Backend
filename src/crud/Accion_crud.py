@@ -25,14 +25,10 @@ class AccionCRUD:
     @staticmethod
     def crear_accion(datos: dict, accion: Accion):
         if not accion.tipo_accion or not accion.tipo_accion.strip():
-            raise ValueError(
-                "El tipo de acción no puede estar vacío"
-            )
+            raise ValueError("El tipo de acción no puede estar vacío")
 
         if not accion.descripcion or not accion.descripcion.strip():
-            raise ValueError(
-                "La descripción de la acción no puede estar vacía"
-            )
+            raise ValueError("La descripción de la acción no puede estar vacía")
 
         datos[accion.id_accion] = accion
 
@@ -58,7 +54,7 @@ class AccionCRUD:
         tipo_accion: str,
         descripcion: str,
         ip_origen: str,
-        resultado: str
+        resultado: str,
     ):
         accion = datos.get(id_accion)
 
@@ -66,14 +62,10 @@ class AccionCRUD:
             raise ValueError("Acción no encontrada")
 
         if not tipo_accion or not tipo_accion.strip():
-            raise ValueError(
-                "El tipo de acción no puede estar vacío"
-            )
+            raise ValueError("El tipo de acción no puede estar vacío")
 
         if not descripcion or not descripcion.strip():
-            raise ValueError(
-                "La descripción de la acción no puede estar vacía"
-            )
+            raise ValueError("La descripción de la acción no puede estar vacía")
 
         accion.tipo_accion = tipo_accion
         accion.descripcion = descripcion

@@ -27,14 +27,9 @@ class TipoCuentaCRUD:
     @staticmethod
     def crear_tipo_cuenta(datos: dict, tipo: TipoCuenta):
         if not tipo.nombre or not tipo.nombre.strip():
-            raise ValueError(
-                "El nombre del tipo de cuenta no puede estar vacío"
-            )
+            raise ValueError("El nombre del tipo de cuenta no puede estar vacío")
 
-        existente = next(
-            (t for t in datos.values() if t.nombre == tipo.nombre),
-            None
-        )
+        existente = next((t for t in datos.values() if t.nombre == tipo.nombre), None)
 
         if existente:
             raise ValueError("El tipo de cuenta ya existe")
@@ -65,7 +60,7 @@ class TipoCuentaCRUD:
         tasa_interes: float,
         monto_minimo_apertura: float,
         requiere_mantenimiento: bool,
-        id_usuario_edicion: UUID
+        id_usuario_edicion: UUID,
     ):
         tipo = datos.get(id_tipo)
 
@@ -73,24 +68,20 @@ class TipoCuentaCRUD:
             raise ValueError("Tipo de cuenta no encontrado")
 
         if not nombre or not nombre.strip():
-            raise ValueError(
-                "El nombre del tipo de cuenta no puede estar vacío"
-            )
+            raise ValueError("El nombre del tipo de cuenta no puede estar vacío")
 
         # Verificar que no exista otro tipo de cuenta con el mismo nombre
         existente = next(
             (
-                t for t in datos.values()
-                if t.id_tipo_cuenta != id_tipo
-                and t.nombre == nombre
+                t
+                for t in datos.values()
+                if t.id_tipo_cuenta != id_tipo and t.nombre == nombre
             ),
-            None
+            None,
         )
 
         if existente:
-            raise ValueError(
-                "Ya existe otro tipo de cuenta con ese nombre"
-            )
+            raise ValueError("Ya existe otro tipo de cuenta con ese nombre")
 
         tipo.set_nombre(nombre)
         tipo.set_descripcion(descripcion)

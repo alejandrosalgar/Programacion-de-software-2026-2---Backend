@@ -26,16 +26,11 @@ class TarjetaCRUD:
     @staticmethod
     def crear_tarjeta(datos: dict, tarjeta: Tarjeta):
         if not tarjeta.numero_tarjeta or not tarjeta.numero_tarjeta.strip():
-            raise ValueError(
-                "El número de tarjeta no puede estar vacío"
-            )
+            raise ValueError("El número de tarjeta no puede estar vacío")
 
         existente = next(
-            (
-                t for t in datos.values()
-                if t.numero_tarjeta == tarjeta.numero_tarjeta
-            ),
-            None
+            (t for t in datos.values() if t.numero_tarjeta == tarjeta.numero_tarjeta),
+            None,
         )
 
         if existente:
@@ -69,7 +64,7 @@ class TarjetaCRUD:
         fecha_vencimiento,
         cvv: str,
         limite_credito: float,
-        id_usuario_edicion: UUID
+        id_usuario_edicion: UUID,
     ):
         tarjeta = datos.get(id_tarjeta)
 
@@ -77,24 +72,20 @@ class TarjetaCRUD:
             raise ValueError("Tarjeta no encontrada")
 
         if not numero_tarjeta or not numero_tarjeta.strip():
-            raise ValueError(
-                "El número de tarjeta no puede estar vacío"
-            )
+            raise ValueError("El número de tarjeta no puede estar vacío")
 
         # Verificar que no exista otra tarjeta con el mismo número
         existente = next(
             (
-                t for t in datos.values()
-                if t.id_tarjeta != id_tarjeta
-                and t.numero_tarjeta == numero_tarjeta
+                t
+                for t in datos.values()
+                if t.id_tarjeta != id_tarjeta and t.numero_tarjeta == numero_tarjeta
             ),
-            None
+            None,
         )
 
         if existente:
-            raise ValueError(
-                "Ya existe otra tarjeta con ese número"
-            )
+            raise ValueError("Ya existe otra tarjeta con ese número")
 
         tarjeta.set_id_cuenta(id_cuenta)
         tarjeta.set_numero_tarjeta(numero_tarjeta)

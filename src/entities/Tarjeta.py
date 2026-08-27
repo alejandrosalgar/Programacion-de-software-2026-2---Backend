@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, date
 from uuid import UUID
 
+
 class Tarjeta:
     def __init__(
         self,
@@ -103,7 +104,7 @@ class Tarjeta:
 
     def tiene_cupo_disponible(self, monto: float) -> bool:
         if self.tipo_tarjeta.lower() != "credito":
-            return True  
+            return True
         return monto <= self.limite_credito
 
     def enmascarar_numero(self) -> str:

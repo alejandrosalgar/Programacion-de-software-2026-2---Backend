@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, date
 from uuid import UUID
 
+
 class TipoCuenta:
 
     def __init__(
