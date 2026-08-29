@@ -239,7 +239,9 @@ def eliminar_sede() -> None:
         pausar()
         return
 
-    confirmacion = leer_texto(f"¿Eliminar la sede '{seleccion.nombre}'? (s/n)").lower()
+    confirmacion = leer_texto(
+        f"¿Eliminar la sede '{seleccion.nombre}'? (s/n)"
+    ).lower()
     if confirmacion != "s":
         print("Operacion cancelada.")
         pausar()
