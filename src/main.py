@@ -333,3 +333,10 @@ if __name__ == "__main__":
         menu_principal()
     except KeyboardInterrupt:
         print("\n\nPrograma finalizado.")
+
+
+from crud import cuota as cuota_crud
+from crud import empleado as empleado_crud
+from crud import sucursal as sucursal_crud
+from crud import sede as sede_crud
+from crud import usuario as usuario_crud

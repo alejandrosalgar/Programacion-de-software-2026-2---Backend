@@ -1,0 +1,1 @@
+complemeto entidades del proyecto las cuales son  cuota, sucursal y empleado
