@@ -7,7 +7,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from crud import sede as sede_crud
 from crud import usuario as usuario_crud
-
+from crud import TipoCuenta_crud as tipo_cuenta_crud
+from crud import Tarjeta_crud as tarjeta_crud
+from crud import Accion_crud as accion_crud
 sesion = None
 
 
