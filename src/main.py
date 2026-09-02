@@ -7,6 +7,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from crud import sede as sede_crud
 from crud import usuario as usuario_crud
+from crud import TipoCuenta_crud as tipo_cuenta_crud
+from crud import Tarjeta_crud as tarjeta_crud
+from crud import Accion_crud as accion_crud
+from crud import cuota as cuota_crud
+from crud import empleado as empleado_crud
+from crud import sucursal as sucursal_crud
+from crud import beneficiario as beneficiario_crud
 
 sesion = None
 
@@ -101,20 +108,18 @@ def iniciar_sesion() -> None:
     menu_entidades()
 
 
+# --- SEDES ---
 def listar_sedes() -> None:
     limpiar_pantalla()
     titulo("LISTAR SEDES")
-
     sedes = sede_crud.listar()
     if not sedes:
         print("No hay sedes registradas.")
         pausar()
         return
-
     for indice, sede in enumerate(sedes, start=1):
         print(f"{indice}. {sede.nombre} | {sede.ciudad} | {sede.id_sede}")
         mostrar_sede(sede)
-
     pausar()
 
 
@@ -123,16 +128,13 @@ def seleccionar_sede():
     if not sedes:
         print("No hay sedes registradas.")
         return None
-
     print("\nSedes disponibles:")
     for indice, sede in enumerate(sedes, start=1):
         print(f"{indice}. {sede.nombre} ({sede.ciudad})")
-
     opcion = leer_texto("Seleccione el numero de la sede")
     if not opcion.isdigit():
         print("Opcion invalida.")
         return None
-
     indice = int(opcion) - 1
     if indice < 0 or indice >= len(sedes):
         print("Opcion invalida.")
@@ -143,17 +145,14 @@ def seleccionar_sede():
 def crear_sede() -> None:
     limpiar_pantalla()
     titulo("CREAR SEDE")
-
     if sesion is None:
         print("Debe iniciar sesion para crear una sede.")
         pausar()
         return
-
     nombre = leer_texto("Nombre")
     direccion = leer_texto("Direccion")
     ciudad = leer_texto("Ciudad")
     telefono = leer_texto("Telefono")
-
     sede = sede_crud.crear(
         nombre=nombre,
         direccion=direccion,
@@ -169,18 +168,15 @@ def crear_sede() -> None:
 def ver_sede() -> None:
     limpiar_pantalla()
     titulo("VER SEDE")
-
     seleccion = seleccionar_sede()
     if seleccion is None:
         pausar()
         return
-
     sede = sede_crud.obtener(seleccion.id_sede)
     if sede is None:
         print("No se encontro la sede.")
         pausar()
         return
-
     print("\nDetalle de la sede:")
     mostrar_sede(sede)
     pausar()
@@ -189,29 +185,24 @@ def ver_sede() -> None:
 def editar_sede() -> None:
     limpiar_pantalla()
     titulo("EDITAR SEDE")
-
     if sesion is None:
         print("Debe iniciar sesion para editar una sede.")
         pausar()
         return
-
     seleccion = seleccionar_sede()
     if seleccion is None:
         pausar()
         return
-
     sede = sede_crud.obtener(seleccion.id_sede)
     if sede is None:
         print("No se encontro la sede.")
         pausar()
         return
-
     print("\nDeje el campo vacio para conservar el valor actual.\n")
     nombre = leer_texto(f"Nombre [{sede.nombre}]", obligatorio=False)
     direccion = leer_texto(f"Direccion [{sede.direccion}]", obligatorio=False)
     ciudad = leer_texto(f"Ciudad [{sede.ciudad}]", obligatorio=False)
     telefono = leer_texto(f"Telefono [{sede.telefono}]", obligatorio=False)
-
     actualizado = sede_crud.actualizar(
         id_sede=sede.id_sede,
         id_usuario_edicion=sesion.id_usuario,
@@ -224,7 +215,6 @@ def editar_sede() -> None:
         print("No se pudo actualizar la sede.")
         pausar()
         return
-
     print("\nSede actualizada correctamente.")
     mostrar_sede(actualizado)
     pausar()
@@ -233,25 +223,19 @@ def editar_sede() -> None:
 def eliminar_sede() -> None:
     limpiar_pantalla()
     titulo("ELIMINAR SEDE")
-
     seleccion = seleccionar_sede()
     if seleccion is None:
         pausar()
         return
-
-    confirmacion = leer_texto(
-        f"¿Eliminar la sede '{seleccion.nombre}'? (s/n)"
-    ).lower()
+    confirmacion = leer_texto(f"¿Eliminar la sede '{seleccion.nombre}'? (s/n)").lower()
     if confirmacion != "s":
         print("Operacion cancelada.")
         pausar()
         return
-
     if not sede_crud.eliminar(seleccion.id_sede):
         print("No se pudo eliminar la sede.")
         pausar()
         return
-
     print("Sede eliminada correctamente.")
     pausar()
 
@@ -285,6 +269,94 @@ def menu_sedes() -> None:
             pausar()
 
 
+# --- CUOTAS ---
+def menu_cuotas() -> None:
+    while True:
+        limpiar_pantalla()
+        titulo("CRUD CUOTAS")
+        print("1. Listar cuotas")
+        print("0. Volver")
+        opcion = leer_texto("\nSeleccione una opcion")
+        if opcion == "1":
+            limpiar_pantalla()
+            titulo("LISTAR CUOTAS")
+            cuotas = cuota_crud.listar() if hasattr(cuota_crud, 'listar') else []
+            if not cuotas:
+                print("No hay cuotas registradas.")
+            else:
+                for c in cuotas:
+                    print(c)
+            pausar()
+        elif opcion == "0":
+            return
+
+
+# --- SUCURSALES ---
+def menu_sucursales() -> None:
+    while True:
+        limpiar_pantalla()
+        titulo("CRUD SUCURSALES")
+        print("1. Listar sucursales")
+        print("0. Volver")
+        opcion = leer_texto("\nSeleccione una opcion")
+        if opcion == "1":
+            limpiar_pantalla()
+            titulo("LISTAR SUCURSALES")
+            sucursales = sucursal_crud.listar() if hasattr(sucursal_crud, 'listar') else []
+            if not sucursales:
+                print("No hay sucursales registradas.")
+            else:
+                for s in sucursales:
+                    print(s)
+            pausar()
+        elif opcion == "0":
+            return
+
+
+# --- EMPLEADOS ---
+def menu_empleados() -> None:
+    while True:
+        limpiar_pantalla()
+        titulo("CRUD EMPLEADOS")
+        print("1. Listar empleados")
+        print("0. Volver")
+        opcion = leer_texto("\nSeleccione una opcion")
+        if opcion == "1":
+            limpiar_pantalla()
+            titulo("LISTAR EMPLEADOS")
+            empleados = empleado_crud.listar() if hasattr(empleado_crud, 'listar') else []
+            if not empleados:
+                print("No hay empleados registrados.")
+            else:
+                for e in empleados:
+                    print(e)
+            pausar()
+        elif opcion == "0":
+            return
+
+
+# --- BENEFICIARIOS ---
+def menu_beneficiarios() -> None:
+    while True:
+        limpiar_pantalla()
+        titulo("CRUD BENEFICIARIOS")
+        print("1. Listar beneficiarios")
+        print("0. Volver")
+        opcion = leer_texto("\nSeleccione una opcion")
+        if opcion == "1":
+            limpiar_pantalla()
+            titulo("LISTAR BENEFICIARIOS")
+            beneficiarios = beneficiario_crud.listar() if hasattr(beneficiario_crud, 'listar') else []
+            if not beneficiarios:
+                print("No hay beneficiarios registrados.")
+            else:
+                for b in beneficiarios:
+                    print(b)
+            pausar()
+        elif opcion == "0":
+            return
+
+
 def menu_entidades() -> None:
     global sesion
     while sesion is not None:
@@ -292,11 +364,23 @@ def menu_entidades() -> None:
         titulo("ENTIDADES")
         print(f"Sesion: {sesion.nombre_usuario}")
         print("\n1. Sedes")
+        print("2. Cuotas")
+        print("3. Sucursales")
+        print("4. Empleados")
+        print("5. Beneficiarios")
         print("0. Cerrar sesion")
 
         opcion = leer_texto("\nSeleccione una opcion")
         if opcion == "1":
             menu_sedes()
+        elif opcion == "2":
+            menu_cuotas()
+        elif opcion == "3":
+            menu_sucursales()
+        elif opcion == "4":
+            menu_empleados()
+        elif opcion == "5":
+            menu_beneficiarios()
         elif opcion == "0":
             sesion = None
             return
