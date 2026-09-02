@@ -1,4 +1,4 @@
-from crud import beneficiario, cuota, empleado, sede, sucursal, usuario
+from crud import beneficiario, cuenta, cuota, empleado, sede, sucursal, usuario
 
 __all__ = [
     "usuario",
@@ -7,4 +7,5 @@ __all__ = [
     "sucursal",
     "empleado",
     "beneficiario",
+    "cuenta",
 ]
