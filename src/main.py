@@ -14,6 +14,7 @@ from crud import cuota as cuota_crud
 from crud import empleado as empleado_crud
 from crud import sucursal as sucursal_crud
 from crud import beneficiario as beneficiario_crud
+from crud import cuenta as cuenta_crud
 
 sesion = None
 
@@ -38,6 +39,17 @@ def leer_texto(etiqueta: str, obligatorio: bool = True) -> str:
         if valor or not obligatorio:
             return valor
         print("Este campo es obligatorio.")
+
+
+def leer_float(etiqueta: str, obligatorio: bool = True) -> float | None:
+    while True:
+        valor = input(f"{etiqueta}: ").strip()
+        if not valor and not obligatorio:
+            return None
+        try:
+            return float(valor)
+        except ValueError:
+            print("Ingrese un numero valido.")
 
 
 def mostrar_usuario(usuario) -> None:
@@ -269,6 +281,178 @@ def menu_sedes() -> None:
             pausar()
 
 
+# --- CUENTAS ---
+def mostrar_cuenta(cuenta) -> None:
+    print("-" * 50)
+    print(cuenta)
+    print("-" * 50)
+
+
+def listar_cuentas() -> None:
+    limpiar_pantalla()
+    titulo("LISTAR CUENTAS")
+    cuentas = cuenta_crud.listar()
+    if not cuentas:
+        print("No hay cuentas registradas.")
+        pausar()
+        return
+    for indice, cuenta in enumerate(cuentas, start=1):
+        print(f"{indice}. {cuenta.numero_cuenta} | {cuenta.estado} | {cuenta.saldo}")
+        mostrar_cuenta(cuenta)
+    pausar()
+
+
+def seleccionar_cuenta():
+    cuentas = cuenta_crud.listar()
+    if not cuentas:
+        print("No hay cuentas registradas.")
+        return None
+    print("\nCuentas disponibles:")
+    for indice, cuenta in enumerate(cuentas, start=1):
+        print(f"{indice}. {cuenta.numero_cuenta} ({cuenta.estado})")
+    opcion = leer_texto("Seleccione el numero de la cuenta")
+    if not opcion.isdigit():
+        print("Opcion invalida.")
+        return None
+    indice = int(opcion) - 1
+    if indice < 0 or indice >= len(cuentas):
+        print("Opcion invalida.")
+        return None
+    return cuentas[indice]
+
+
+def crear_cuenta() -> None:
+    limpiar_pantalla()
+    titulo("CREAR CUENTA")
+    if sesion is None:
+        print("Debe iniciar sesion para crear una cuenta.")
+        pausar()
+        return
+    numero_cuenta = leer_texto("Numero de cuenta")
+    saldo = leer_float("Saldo inicial", obligatorio=False)
+    estado = leer_texto("Estado [Activa]", obligatorio=False) or "Activa"
+    cuenta = cuenta_crud.crear(
+        numero_cuenta=numero_cuenta,
+        id_usuario=sesion.id_usuario,
+        id_usuario_creacion=sesion.id_usuario,
+        saldo=0.0 if saldo is None else saldo,
+        estado=estado,
+    )
+    if cuenta is None:
+        print("\nNo se pudo crear la cuenta. Verifique que el numero no este repetido.")
+        pausar()
+        return
+    print("\nCuenta creada correctamente.")
+    mostrar_cuenta(cuenta)
+    pausar()
+
+
+def ver_cuenta() -> None:
+    limpiar_pantalla()
+    titulo("VER CUENTA")
+    seleccion = seleccionar_cuenta()
+    if seleccion is None:
+        pausar()
+        return
+    cuenta = cuenta_crud.obtener(seleccion.id_cuenta)
+    if cuenta is None:
+        print("No se encontro la cuenta.")
+        pausar()
+        return
+    print("\nDetalle de la cuenta:")
+    mostrar_cuenta(cuenta)
+    pausar()
+
+
+def editar_cuenta() -> None:
+    limpiar_pantalla()
+    titulo("EDITAR CUENTA")
+    if sesion is None:
+        print("Debe iniciar sesion para editar una cuenta.")
+        pausar()
+        return
+    seleccion = seleccionar_cuenta()
+    if seleccion is None:
+        pausar()
+        return
+    cuenta = cuenta_crud.obtener(seleccion.id_cuenta)
+    if cuenta is None:
+        print("No se encontro la cuenta.")
+        pausar()
+        return
+    print("\nDeje el campo vacio para conservar el valor actual.\n")
+    numero_cuenta = leer_texto(
+        f"Numero de cuenta [{cuenta.numero_cuenta}]", obligatorio=False
+    )
+    saldo = leer_float(f"Saldo [{cuenta.saldo}]", obligatorio=False)
+    estado = leer_texto(f"Estado [{cuenta.estado}]", obligatorio=False)
+    actualizado = cuenta_crud.actualizar(
+        id_cuenta=cuenta.id_cuenta,
+        id_usuario_edicion=sesion.id_usuario,
+        numero_cuenta=numero_cuenta or None,
+        saldo=saldo,
+        estado=estado or None,
+    )
+    if actualizado is None:
+        print("No se pudo actualizar la cuenta.")
+        pausar()
+        return
+    print("\nCuenta actualizada correctamente.")
+    mostrar_cuenta(actualizado)
+    pausar()
+
+
+def eliminar_cuenta() -> None:
+    limpiar_pantalla()
+    titulo("ELIMINAR CUENTA")
+    seleccion = seleccionar_cuenta()
+    if seleccion is None:
+        pausar()
+        return
+    confirmacion = leer_texto(
+        f"¿Eliminar la cuenta '{seleccion.numero_cuenta}'? (s/n)"
+    ).lower()
+    if confirmacion != "s":
+        print("Operacion cancelada.")
+        pausar()
+        return
+    if not cuenta_crud.eliminar(seleccion.id_cuenta):
+        print("No se pudo eliminar la cuenta.")
+        pausar()
+        return
+    print("Cuenta eliminada correctamente.")
+    pausar()
+
+
+def menu_cuentas() -> None:
+    while True:
+        limpiar_pantalla()
+        titulo("CRUD CUENTAS")
+        print("1. Listar cuentas")
+        print("2. Crear cuenta")
+        print("3. Ver cuenta")
+        print("4. Editar cuenta")
+        print("5. Eliminar cuenta")
+        print("0. Volver")
+
+        opcion = leer_texto("\nSeleccione una opcion")
+        if opcion == "1":
+            listar_cuentas()
+        elif opcion == "2":
+            crear_cuenta()
+        elif opcion == "3":
+            ver_cuenta()
+        elif opcion == "4":
+            editar_cuenta()
+        elif opcion == "5":
+            eliminar_cuenta()
+        elif opcion == "0":
+            return
+        else:
+            print("Opcion invalida.")
+            pausar()
+
+
 # --- CUOTAS ---
 def menu_cuotas() -> None:
     while True:
@@ -368,6 +552,7 @@ def menu_entidades() -> None:
         print("3. Sucursales")
         print("4. Empleados")
         print("5. Beneficiarios")
+        print("6. Cuentas")
         print("0. Cerrar sesion")
 
         opcion = leer_texto("\nSeleccione una opcion")
@@ -381,6 +566,8 @@ def menu_entidades() -> None:
             menu_empleados()
         elif opcion == "5":
             menu_beneficiarios()
+        elif opcion == "6":
+            menu_cuentas()
         elif opcion == "0":
             sesion = None
             return
