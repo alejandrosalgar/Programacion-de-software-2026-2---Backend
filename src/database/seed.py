@@ -120,7 +120,9 @@ def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
     ahora = datetime.now()
     for datos in CUENTAS_SEED:
         existente = (
-            session.query(Cuenta).filter_by(numero_cuenta=datos["numero_cuenta"]).first()
+            session.query(Cuenta)
+            .filter_by(numero_cuenta=datos["numero_cuenta"])
+            .first()
         )
         if existente:
             print(f"  Cuenta '{datos['numero_cuenta']}' ya existe.")
@@ -197,5 +199,5 @@ def seed() -> None:
         session.close()
 
 
-
-seed()
+if __name__ == "__main__":
+    seed()
