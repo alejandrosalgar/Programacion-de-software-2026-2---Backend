@@ -1,82 +1,39 @@
 import uuid
-from datetime import datetime, date
-from uuid import UUID
+from datetime import date
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from database.connection import Base
+
+if TYPE_CHECKING:
+    from entities.cuenta import (
+        Cuenta,
+    )
 
 
-class TipoCuenta:
+class TipoCuenta(Base):
+    __tablename__ = "tipo_cuenta"
 
-    def __init__(
-        self,
-        nombre: str,
-        descripcion: str,
-        tasa_interes: float,
-        monto_minimo_apertura: float,
-        requiere_mantenimiento: bool,
-        estado: str,
-        id_usuario_creacion: UUID,
-        id_usuario_edicion: UUID,
-        fecha_creacion: datetime,
-        fecha_edicion: datetime,
-    ):
-        self.id_tipo_cuenta: UUID = uuid.uuid4()
-        self.nombre: str = nombre
-        self.descripcion: str = descripcion
-        self.tasa_interes: float = tasa_interes
-        self.monto_minimo_apertura: float = monto_minimo_apertura
-        self.requiere_mantenimiento: bool = requiere_mantenimiento
-        self.estado: str = estado
-        self.id_usuario_creacion: UUID = id_usuario_creacion
-        self.id_usuario_edicion: UUID = id_usuario_edicion
-        self.fecha_creacion: datetime = fecha_creacion
-        self.fecha_edicion: datetime = fecha_edicion
+    id_tipo_cuenta: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True, default=uuid.uuid4
+    )
+    nombre: Mapped[str] = mapped_column(String(80), unique=True)
+    descripcion: Mapped[str] = mapped_column(String(255), default="")
+    tasa_interes: Mapped[float] = mapped_column()
+    monto_minimo_apertura: Mapped[float] = mapped_column()
+    requiere_mantenimiento: Mapped[bool] = mapped_column(default=False)
+    estado: Mapped[str] = mapped_column(String(20), default="Activo")
 
-    def get_id_tipo_cuenta(self) -> UUID:
-        return self.id_tipo_cuenta
-
-    def get_nombre(self) -> str:
-        return self.nombre
-
-    def set_nombre(self, nombre: str) -> None:
-        self.nombre = nombre
-
-    def get_descripcion(self) -> str:
-        return self.descripcion
-
-    def set_descripcion(self, descripcion: str) -> None:
-        self.descripcion = descripcion
-
-    def get_tasa_interes(self) -> float:
-        return self.tasa_interes
-
-    def set_tasa_interes(self, tasa_interes: float) -> None:
-        self.tasa_interes = tasa_interes
-
-    def get_monto_minimo_apertura(self) -> float:
-        return self.monto_minimo_apertura
-
-    def set_monto_minimo_apertura(self, monto_minimo_apertura: float) -> None:
-        self.monto_minimo_apertura = monto_minimo_apertura
-
-    def get_requiere_mantenimiento(self) -> bool:
-        return self.requiere_mantenimiento
-
-    def set_requiere_mantenimiento(self, requiere_mantenimiento: bool) -> None:
-        self.requiere_mantenimiento = requiere_mantenimiento
-
-    def get_estado(self) -> str:
-        return self.estado
-
-    def get_id_usuario_creacion(self) -> UUID:
-        return self.id_usuario_creacion
-
-    def get_id_usuario_edicion(self) -> UUID:
-        return self.id_usuario_edicion
-
-    def get_fecha_creacion(self) -> datetime:
-        return self.fecha_creacion
-
-    def get_fecha_edicion(self) -> datetime:
-        return self.fecha_edicion
+    id_usuario_creacion: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("usuarios.id_usuario")
+    )
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_creacion: Mapped[date] = mapped_column(default=date.today)
+    fecha_edicion: Mapped[date | None] = mapped_column(nullable=True)
 
     def calcular_interes(self, saldo: float) -> float:
         return saldo * (self.tasa_interes / 100)
@@ -90,6 +47,6 @@ class TipoCuenta:
     def desactivar(self) -> None:
         self.estado = "Inactivo"
 
-    def registrar_edicion(self, id_usuario_edicion: UUID) -> None:
+    def registrar_edicion(self, id_usuario_edicion: uuid.UUID) -> None:
         self.id_usuario_edicion = id_usuario_edicion
-        self.fecha_edicion = datetime.now()
+        self.fecha_edicion = date.today()
