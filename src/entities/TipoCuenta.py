@@ -34,6 +34,7 @@ class TipoCuenta(Base):
     )
     fecha_creacion: Mapped[date] = mapped_column(default=date.today)
     fecha_edicion: Mapped[date | None] = mapped_column(nullable=True)
+    cuentas: Mapped[list["Cuenta"]] = relationship(back_populates="tipo_cuenta")
 
     def calcular_interes(self, saldo: float) -> float:
         return saldo * (self.tasa_interes / 100)
