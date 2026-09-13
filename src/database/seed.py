@@ -222,6 +222,7 @@ def seed_tipos_cuenta(session, usuarios: dict[str, Usuario]) -> dict[str, TipoCu
 def seed_cuentas(
     session, usuarios: dict[str, Usuario], tipos_cuenta: dict[str, TipoCuenta]
 ) -> dict[str, Cuenta]:
+def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
     cuentas: dict[str, Cuenta] = {}
     ahora = datetime.now()
     for datos in CUENTAS_SEED:
@@ -229,6 +230,7 @@ def seed_cuentas(
             session.query(Cuenta)
             .filter_by(numero_cuenta=datos["numero_cuenta"])
             .first()
+            session.query(Cuenta).filter_by(numero_cuenta=datos["numero_cuenta"]).first()
         )
         if existente:
             print(f"  Cuenta '{datos['numero_cuenta']}' ya existe.")
@@ -241,6 +243,9 @@ def seed_cuentas(
             numero_cuenta=datos["numero_cuenta"],
             id_usuario=titular.id_usuario,
             id_tipo_cuenta=tipo_cuenta.id_tipo_cuenta,
+        cuenta = Cuenta(
+            numero_cuenta=datos["numero_cuenta"],
+            id_usuario=titular.id_usuario,
             saldo=datos["saldo"],
             estado=datos["estado"],
             fecha_apertura=date.today(),
@@ -252,6 +257,7 @@ def seed_cuentas(
         print(
             f"  Cuenta '{datos['numero_cuenta']}' creada (tipo: {datos['tipo_cuenta']})."
         )
+        print(f"  Cuenta '{datos['numero_cuenta']}' creada.")
 
     session.flush()
     return cuentas
@@ -371,6 +377,10 @@ def seed() -> None:
         print("Sembrando sedes...")
         seed_sedes(session, usuarios)
 
+        print("Sembrando cuentas...")
+        cuentas = seed_cuentas(session, usuarios)
+        print("Sembrando tarjetas...")
+        seed_tarjetas(session, cuentas)
         session.commit()
         print("\nSeeder completado.")
     except Exception:
@@ -379,6 +389,7 @@ def seed() -> None:
         raise
     finally:
         session.close()
+
 
 
 seed()
