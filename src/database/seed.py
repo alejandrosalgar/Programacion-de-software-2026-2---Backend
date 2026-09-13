@@ -1,12 +1,16 @@
 import sys
 from datetime import date, datetime
 from pathlib import Path
+from uuid import UUID
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database.connection import Base, engine, get_session
 from entities.cuenta import Cuenta
 from entities.Tarjeta import Tarjeta
+from entities.cuota import Cuota
+from entities.empleado import Empleado
+from entities.sucursal import Sucursal
 from entities.usuario import Usuario
 
 USUARIOS_SEED = [
@@ -92,6 +96,118 @@ TARJETAS_SEED = [
     },
 ]
 
+SUCURSALES_SEED = [
+    {
+        "nombre": "Sucursal Centro",
+        "direccion": "Carrera 7 # 12-34",
+        "ciudad": "Bogota",
+        "telefono": "6015550101",
+    },
+    {
+        "nombre": "Sucursal Norte",
+        "direccion": "Calle 100 # 15-20",
+        "ciudad": "Bogota",
+        "telefono": "6015550102",
+    },
+    {
+        "nombre": "Sucursal Medellin",
+        "direccion": "Carrera 43A # 1-50",
+        "ciudad": "Medellin",
+        "telefono": "6045550103",
+    },
+    {
+        "nombre": "Sucursal Cali",
+        "direccion": "Calle 10 # 4-25",
+        "ciudad": "Cali",
+        "telefono": "6025550104",
+    },
+    {
+        "nombre": "Sucursal Barranquilla",
+        "direccion": "Carrera 53 # 80-10",
+        "ciudad": "Barranquilla",
+        "telefono": "6055550105",
+    },
+]
+
+EMPLEADOS_SEED = [
+    {
+        "nombre_usuario": "ana.restrepo",
+        "nombre_sucursal": "Sucursal Centro",
+        "cargo": "Gerente",
+    },
+    {
+        "nombre_usuario": "carlos.ruiz",
+        "nombre_sucursal": "Sucursal Norte",
+        "cargo": "Asesor",
+    },
+    {
+        "nombre_usuario": "laura.mendez",
+        "nombre_sucursal": "Sucursal Medellin",
+        "cargo": "Cajera",
+    },
+    {
+        "nombre_usuario": "ana.restrepo",
+        "nombre_sucursal": "Sucursal Cali",
+        "cargo": "Asesora comercial",
+    },
+    {
+        "nombre_usuario": "carlos.ruiz",
+        "nombre_sucursal": "Sucursal Barranquilla",
+        "cargo": "Analista de credito",
+    },
+]
+
+CUOTAS_SEED = [
+    {
+        "id_prestamo": UUID("00000000-0000-0000-0000-000000000001"),
+        "numero_cuota": 1,
+        "valor": 450_000.0,
+        "fecha_vencimiento": date(2026, 10, 15),
+        "estado": "pendiente",
+        "nombre_usuario": "ana.restrepo",
+    },
+    {
+        "id_prestamo": UUID("00000000-0000-0000-0000-000000000001"),
+        "numero_cuota": 2,
+        "valor": 450_000.0,
+        "fecha_vencimiento": date(2026, 11, 15),
+        "estado": "pendiente",
+        "nombre_usuario": "ana.restrepo",
+    },
+    {
+        "id_prestamo": UUID("00000000-0000-0000-0000-000000000001"),
+        "numero_cuota": 3,
+        "valor": 450_000.0,
+        "fecha_vencimiento": date(2026, 12, 15),
+        "estado": "pendiente",
+        "nombre_usuario": "ana.restrepo",
+    },
+    {
+        "id_prestamo": UUID("00000000-0000-0000-0000-000000000002"),
+        "numero_cuota": 1,
+        "valor": 275_000.0,
+        "fecha_vencimiento": date(2026, 10, 30),
+        "estado": "pendiente",
+        "nombre_usuario": "carlos.ruiz",
+    },
+    {
+        "id_prestamo": UUID("00000000-0000-0000-0000-000000000002"),
+        "numero_cuota": 2,
+        "valor": 275_000.0,
+        "fecha_vencimiento": date(2026, 11, 30),
+        "estado": "pendiente",
+        "nombre_usuario": "carlos.ruiz",
+    },
+    {
+        "id_prestamo": UUID("00000000-0000-0000-0000-000000000003"),
+        "numero_cuota": 1,
+        "valor": 180_000.0,
+        "fecha_vencimiento": date(2026, 12, 5),
+        "estado": "pagada",
+        "nombre_usuario": "laura.mendez",
+    },
+]
+
 
 def seed_usuarios(session) -> dict[str, Usuario]:
     usuarios: dict[str, Usuario] = {}
@@ -120,7 +236,9 @@ def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
     ahora = datetime.now()
     for datos in CUENTAS_SEED:
         existente = (
-            session.query(Cuenta).filter_by(numero_cuenta=datos["numero_cuenta"]).first()
+            session.query(Cuenta)
+            .filter_by(numero_cuenta=datos["numero_cuenta"])
+            .first()
         )
         if existente:
             print(f"  Cuenta '{datos['numero_cuenta']}' ya existe.")
@@ -177,6 +295,86 @@ def seed_tarjetas(session, cuentas: dict[str, Cuenta]) -> None:
         print(f"  Tarjeta '{datos['numero_tarjeta']}' creada.")
 
 
+def seed_sucursales(session, usuario_creacion: Usuario) -> dict[str, Sucursal]:
+    sucursales: dict[str, Sucursal] = {}
+    for datos in SUCURSALES_SEED:
+        existente = session.query(Sucursal).filter_by(nombre=datos["nombre"]).first()
+        if existente:
+            print(f"  Sucursal '{datos['nombre']}' ya existe.")
+            sucursales[datos["nombre"]] = existente
+            continue
+
+        sucursal = Sucursal(
+            **datos,
+            id_usuario_creacion=usuario_creacion.id_usuario,
+        )
+        session.add(sucursal)
+        sucursales[datos["nombre"]] = sucursal
+        print(f"  Sucursal '{datos['nombre']}' creada.")
+
+    session.flush()
+    return sucursales
+
+
+def seed_empleados(
+    session, usuarios: dict[str, Usuario], sucursales: dict[str, Sucursal]
+) -> None:
+    for datos in EMPLEADOS_SEED:
+        usuario = usuarios[datos["nombre_usuario"]]
+        sucursal = sucursales[datos["nombre_sucursal"]]
+        existente = (
+            session.query(Empleado)
+            .filter_by(id_usuario=usuario.id_usuario, id_sucursal=sucursal.id_sucursal)
+            .first()
+        )
+        if existente:
+            print(f"  Empleado '{datos['nombre_usuario']}' ya existe.")
+            continue
+
+        empleado = Empleado(
+            id_usuario=usuario.id_usuario,
+            id_sucursal=sucursal.id_sucursal,
+            cargo=datos["cargo"],
+            id_usuario_creacion=usuario.id_usuario,
+        )
+        session.add(empleado)
+        print(f"  Empleado '{datos['nombre_usuario']}' creado.")
+
+    session.flush()
+
+
+def seed_cuotas(session, usuarios: dict[str, Usuario]) -> None:
+    for datos in CUOTAS_SEED:
+        usuario = usuarios[datos["nombre_usuario"]]
+        existente = (
+            session.query(Cuota)
+            .filter_by(
+                id_prestamo=datos["id_prestamo"],
+                numero_cuota=datos["numero_cuota"],
+            )
+            .first()
+        )
+        if existente:
+            print(
+                f"  Cuota {datos['numero_cuota']} del prestamo "
+                f"'{datos['id_prestamo']}' ya existe."
+            )
+            continue
+
+        cuota = Cuota(
+            id_prestamo=datos["id_prestamo"],
+            numero_cuota=datos["numero_cuota"],
+            valor=datos["valor"],
+            fecha_vencimiento=datos["fecha_vencimiento"],
+            estado=datos["estado"],
+            id_usuario_creacion=usuario.id_usuario,
+        )
+        session.add(cuota)
+        print(f"  Cuota {datos['numero_cuota']} creada.")
+
+    session.flush()
+
+
 def seed() -> None:
     Base.metadata.create_all(bind=engine)
     session = get_session()
@@ -187,6 +385,12 @@ def seed() -> None:
         cuentas = seed_cuentas(session, usuarios)
         print("Sembrando tarjetas...")
         seed_tarjetas(session, cuentas)
+        print("Sembrando sucursales...")
+        sucursales = seed_sucursales(session, usuarios["ana.restrepo"])
+        print("Sembrando empleados...")
+        seed_empleados(session, usuarios, sucursales)
+        print("Sembrando cuotas...")
+        seed_cuotas(session, usuarios)
         session.commit()
         print("\nSeeder completado.")
     except Exception:
@@ -195,7 +399,6 @@ def seed() -> None:
         raise
     finally:
         session.close()
-
 
 
 seed()
