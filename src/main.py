@@ -17,12 +17,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(usuarios_router)
-
 
 @app.get("/")
 def raiz():
     return {"mensaje": "API en marcha"}
+
+
+app.include_router(usuarios_router)
 
 
 if __name__ == "__main__":

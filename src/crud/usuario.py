@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func
@@ -65,15 +66,7 @@ def eliminar(id_usuario: UUID) -> bool:
         session.close()
 
 
-def actualizar(
-    id_usuario: UUID,
-    primer_nombre: str | None = None,
-    segundo_nombre: str | None = None,
-    primer_apellido: str | None = None,
-    segundo_apellido: str | None = None,
-    nombre_usuario: str | None = None,
-    clave: str | None = None,
-) -> Usuario | None:
+def actualizar(id_usuario: UUID, nombre_usuario: str, **kwargs: Any) -> Usuario | None:
     session = get_session()
     try:
         usuario = _buscar_por_id(session, id_usuario)
@@ -85,18 +78,9 @@ def actualizar(
             if existente is not None and existente.id_usuario != id_usuario:
                 return None
 
-        if primer_nombre:
-            usuario.primer_nombre = primer_nombre.strip()
-        if segundo_nombre is not None:
-            usuario.segundo_nombre = segundo_nombre.strip()
-        if primer_apellido:
-            usuario.primer_apellido = primer_apellido.strip()
-        if segundo_apellido is not None:
-            usuario.segundo_apellido = segundo_apellido.strip()
-        if nombre_usuario:
-            usuario.nombre_usuario = nombre_usuario.strip()
-        if clave:
-            usuario.clave = clave
+        for key, value in kwargs.items():
+            if value is not None:
+                setattr(usuario, key, value.strip())
 
         session.commit()
         session.refresh(usuario)
@@ -132,4 +116,5 @@ def listar() -> list[Usuario]:
     try:
         return session.query(Usuario).all()
     finally:
+        session.close()
         session.close()

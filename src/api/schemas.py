@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -34,3 +35,22 @@ class UsuarioRead(BaseModel):
 class UsuarioLogin(BaseModel):
     nombre_usuario: str
     clave: str
+
+
+class usuarioPost(BaseModel):
+    data: UsuarioRead
+    status: int
+    message: str
+
+
+class UsuarioList(BaseModel):
+    data: List[UsuarioRead]
+    status: int
+    message: str
+    message: str
+
+
+class usuarioPut(BaseModel):
+    data: UsuarioRead
+    status: int
+    message: str
