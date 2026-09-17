@@ -1,20 +1,29 @@
-from dataclasses import dataclass, field
-from datetime import date
-from uuid import UUID, uuid4
+import uuid
+from datetime import date, datetime
+
+from sqlalchemy import Date, DateTime, Float, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from database.connection import Base
 
 
-@dataclass
-class Cuota:
-    id_prestamo: UUID
-    valor: float
-    numero_cuota: int
-    fecha_vencimiento: date
-    estado: str = "pendiente"
-    id_cuota: UUID = field(default_factory=uuid4)
-    id_usuario_creacion: UUID | None = None
-    fecha_creacion: date = field(default_factory=date.today)
-    id_usuario_edicion: UUID | None = None
-    fecha_edicion: date | None = None
+class Cuota(Base):
+    __tablename__ = "cuotas"
+
+    id_cuota: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id_prestamo: Mapped[uuid.UUID]
+    valor: Mapped[float] = mapped_column(Float)
+    numero_cuota: Mapped[int]
+    fecha_vencimiento: Mapped[date] = mapped_column(Date)
+    estado: Mapped[str] = mapped_column(String(20), default="pendiente")
+    id_usuario_creacion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __str__(self) -> str:
         return (
