@@ -1,73 +1,73 @@
 from datetime import date
-from uuid import UUID
 
+from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import UUID
 from entities.sede import Sede
 
-sedes: list[Sede] = []
 
+class SedeCRUD:
+    """
+    Módulo CRUD para la entidad Sede.
+    Permite gestionar las sedes físicas registradas en el sistema.
+    """
 
-def _buscar_por_id(id_sede: UUID) -> Sede | None:
-    for sede in sedes:
-        if sede.id_sede == id_sede:
-            return sede
-    return None
+    def __init__(self, db):
+        self.db = db
 
+    @staticmethod
+    def crear_sede(db: Session, sede: Sede):
+        if not sede.nombre or not sede.nombre.strip():
+            raise ValueError("El nombre de la sede no puede estar vacío")
 
-def crear(
-    nombre: str,
-    direccion: str,
-    ciudad: str,
-    telefono: str,
-    id_usuario_creacion: UUID,
-) -> Sede:
-    sede = Sede(
-        nombre=nombre,
-        direccion=direccion,
-        ciudad=ciudad,
-        telefono=telefono,
-        id_usuario_creacion=id_usuario_creacion,
-    )
-    sedes.append(sede)
-    return sede
+        existente = db.query(Sede).filter(Sede.nombre == sede.nombre).first()
+        if existente:
+            raise ValueError("Ya existe una sede con ese nombre")
 
+        db.add(sede)
+        db.commit()
+        db.refresh(sede)
+        return sede
 
-def eliminar(id_sede: UUID) -> bool:
-    sede = _buscar_por_id(id_sede)
-    if sede is None:
-        return False
-    sedes.remove(sede)
-    return True
+    @staticmethod
+    def obtener_sede(db: Session, id_sede: UUID):
+        sede = db.query(Sede).filter(Sede.id_sede == id_sede).first()
+        if not sede:
+            raise ValueError("Sede no encontrada")
+        return sede
 
+    @staticmethod
+    def obtener_sedes(db: Session):
+        return db.query(Sede).all()
 
-def actualizar(
-    id_sede: UUID,
-    id_usuario_edicion: UUID,
-    nombre: str | None = None,
-    direccion: str | None = None,
-    ciudad: str | None = None,
-    telefono: str | None = None,
-) -> Sede | None:
-    sede = _buscar_por_id(id_sede)
-    if sede is None:
-        return None
+    @staticmethod
+    def actualizar_sede(
+        db: Session, id_sede: UUID, id_usuario_edicion: UUID = None, **kwargs
+    ):
+        sede = db.query(Sede).filter(Sede.id_sede == id_sede).first()
+        if not sede:
+            raise ValueError("Sede no encontrada")
 
-    if nombre:
-        sede.nombre = nombre
-    if direccion:
-        sede.direccion = direccion
-    if ciudad:
-        sede.ciudad = ciudad
-    if telefono:
-        sede.telefono = telefono
+        # kwargs esperados: nombre, direccion, ciudad, telefono
+        for campo, valor in kwargs.items():
+            if valor is None:
+                continue
+            if not hasattr(sede, campo):
+                raise ValueError(f"El campo '{campo}' no existe en Sede")
+            setattr(sede, campo, valor)
 
-    sede.id_usuario_edicion = id_usuario_edicion
-    sede.fecha_edicion = date.today()
-    return sede
+        if id_usuario_edicion is not None:
+            sede.registrar_edicion(id_usuario_edicion)
 
+        db.commit()
+        db.refresh(sede)
+        return sede
 
-def obtener(id_sede: UUID) -> Sede | None:
-    return _buscar_por_id(id_sede)
+    @staticmethod
+    def eliminar_sede(db: Session, id_sede: UUID) -> bool:
+        sede = db.query(Sede).filter(Sede.id_sede == id_sede).first()
+        if not sede:
+            raise ValueError("Sede no encontrada")
 
-
-def listar() -> list[Sede]:
-    return list(sedes)
+        db.delete(sede)
+        db.commit()
+        return True

@@ -12,6 +12,9 @@ from entities.cuota import Cuota
 from entities.empleado import Empleado
 from entities.sucursal import Sucursal
 from entities.usuario import Usuario
+from entities.TipoCuenta import TipoCuenta
+from entities.Accion import Accion
+from entities.sede import Sede
 
 USUARIOS_SEED = [
     {
@@ -40,24 +43,54 @@ USUARIOS_SEED = [
     },
 ]
 
+TIPOS_CUENTA_SEED = [
+    {
+        "nombre": "Ahorros",
+        "descripcion": "Cuenta de ahorros tradicional",
+        "tasa_interes": 2.5,
+        "monto_minimo_apertura": 50_000.0,
+        "requiere_mantenimiento": False,
+        "estado": "Activo",
+    },
+    {
+        "nombre": "Corriente",
+        "descripcion": "Cuenta corriente para uso transaccional frecuente",
+        "tasa_interes": 0.0,
+        "monto_minimo_apertura": 200_000.0,
+        "requiere_mantenimiento": True,
+        "estado": "Activo",
+    },
+    {
+        "nombre": "Nomina",
+        "descripcion": "Cuenta de nómina sin cuota de manejo",
+        "tasa_interes": 1.0,
+        "monto_minimo_apertura": 0.0,
+        "requiere_mantenimiento": False,
+        "estado": "Activo",
+    },
+]
+
 CUENTAS_SEED = [
     {
         "nombre_usuario": "ana.restrepo",
         "numero_cuenta": "1001000001",
         "saldo": 2_500_000.0,
         "estado": "Activa",
+        "tipo_cuenta": "Ahorros",
     },
     {
         "nombre_usuario": "carlos.ruiz",
         "numero_cuenta": "1001000002",
         "saldo": 800_000.0,
         "estado": "Activa",
+        "tipo_cuenta": "Corriente",
     },
     {
         "nombre_usuario": "laura.mendez",
         "numero_cuenta": "1001000003",
         "saldo": 150_000.0,
         "estado": "Activa",
+        "tipo_cuenta": "Nomina",
     },
 ]
 
@@ -231,6 +264,38 @@ def seed_usuarios(session) -> dict[str, Usuario]:
     return usuarios
 
 
+def seed_tipos_cuenta(session, usuarios: dict[str, Usuario]) -> dict[str, TipoCuenta]:
+    tipos: dict[str, TipoCuenta] = {}
+    usuario_auditoria = next(iter(usuarios.values()))
+
+    for datos in TIPOS_CUENTA_SEED:
+        existente = session.query(TipoCuenta).filter_by(nombre=datos["nombre"]).first()
+        if existente:
+            print(f"  TipoCuenta '{datos['nombre']}' ya existe.")
+            tipos[datos["nombre"]] = existente
+            continue
+
+        tipo = TipoCuenta(
+            nombre=datos["nombre"],
+            descripcion=datos["descripcion"],
+            tasa_interes=datos["tasa_interes"],
+            monto_minimo_apertura=datos["monto_minimo_apertura"],
+            requiere_mantenimiento=datos["requiere_mantenimiento"],
+            estado=datos["estado"],
+            id_usuario_creacion=usuario_auditoria.id_usuario,
+            fecha_creacion=date.today(),
+        )
+        session.add(tipo)
+        tipos[datos["nombre"]] = tipo
+        print(f"  TipoCuenta '{datos['nombre']}' creado.")
+
+    session.flush()
+    return tipos
+
+
+def seed_cuentas(
+    session, usuarios: dict[str, Usuario], tipos_cuenta: dict[str, TipoCuenta]
+) -> dict[str, Cuenta]:
 def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
     cuentas: dict[str, Cuenta] = {}
     ahora = datetime.now()
@@ -246,6 +311,11 @@ def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
             continue
 
         titular = usuarios[datos["nombre_usuario"]]
+        tipo_cuenta = tipos_cuenta[datos["tipo_cuenta"]]
+        cuenta = Cuenta(
+            numero_cuenta=datos["numero_cuenta"],
+            id_usuario=titular.id_usuario,
+            id_tipo_cuenta=tipo_cuenta.id_tipo_cuenta,
         cuenta = Cuenta(
             numero_cuenta=datos["numero_cuenta"],
             id_usuario=titular.id_usuario,
@@ -257,6 +327,9 @@ def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
         )
         session.add(cuenta)
         cuentas[datos["numero_cuenta"]] = cuenta
+        print(
+            f"  Cuenta '{datos['numero_cuenta']}' creada (tipo: {datos['tipo_cuenta']})."
+        )
         print(f"  Cuenta '{datos['numero_cuenta']}' creada.")
 
     session.flush()
@@ -293,6 +366,66 @@ def seed_tarjetas(session, cuentas: dict[str, Cuenta]) -> None:
         )
         session.add(tarjeta)
         print(f"  Tarjeta '{datos['numero_tarjeta']}' creada.")
+
+    session.flush()
+
+
+def seed_acciones(session, usuarios: dict[str, Usuario]) -> None:
+    for datos in ACCIONES_SEED:
+        usuario = usuarios[datos["nombre_usuario"]]
+
+        existente = (
+            session.query(Accion)
+            .filter_by(
+                id_usuario=usuario.id_usuario,
+                tipo_accion=datos["tipo_accion"],
+                ip_origen=datos["ip_origen"],
+            )
+            .first()
+        )
+        if existente:
+            print(
+                f"  Accion '{datos['tipo_accion']}' para '{datos['nombre_usuario']}' ya existe."
+            )
+            continue
+
+        accion = Accion(
+            id_usuario=usuario.id_usuario,
+            tipo_accion=datos["tipo_accion"],
+            descripcion=datos["descripcion"],
+            ip_origen=datos["ip_origen"],
+            resultado=datos["resultado"],
+            fecha_accion=date.today(),
+        )
+        session.add(accion)
+        print(
+            f"  Accion '{datos['tipo_accion']}' para '{datos['nombre_usuario']}' creada."
+        )
+
+    session.flush()
+
+
+def seed_sedes(session, usuarios: dict[str, Usuario]) -> None:
+    for datos in SEDES_SEED:
+        existente = session.query(Sede).filter_by(nombre=datos["nombre"]).first()
+        if existente:
+            print(f"  Sede '{datos['nombre']}' ya existe.")
+            continue
+
+        usuario_creador = usuarios[datos["nombre_usuario_creador"]]
+
+        sede = Sede(
+            nombre=datos["nombre"],
+            direccion=datos["direccion"],
+            ciudad=datos["ciudad"],
+            telefono=datos["telefono"],
+            id_usuario_creacion=usuario_creador.id_usuario,
+            fecha_creacion=date.today(),
+        )
+        session.add(sede)
+        print(f"  Sede '{datos['nombre']}' creada.")
+
+    session.flush()
 
 
 def seed_sucursales(session, usuario_creacion: Usuario) -> dict[str, Sucursal]:
@@ -381,6 +514,22 @@ def seed() -> None:
     try:
         print("Sembrando usuarios...")
         usuarios = seed_usuarios(session)
+
+        print("Sembrando tipos de cuenta...")
+        tipos_cuenta = seed_tipos_cuenta(session, usuarios)
+
+        print("Sembrando cuentas...")
+        cuentas = seed_cuentas(session, usuarios, tipos_cuenta)
+
+        print("Sembrando tarjetas...")
+        seed_tarjetas(session, cuentas)
+
+        print("Sembrando acciones...")
+        seed_acciones(session, usuarios)
+
+        print("Sembrando sedes...")
+        seed_sedes(session, usuarios)
+
         print("Sembrando cuentas...")
         cuentas = seed_cuentas(session, usuarios)
         print("Sembrando tarjetas...")
