@@ -1,47 +1,34 @@
 import uuid
-from datetime import datetime, date
-from uuid import UUID
+from datetime import date
+
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from database.connection import Base
 
 
-class Accion:
+class Accion(Base):
+    """
+    Registro de auditoría de las acciones/eventos ejecutados por un usuario
+    en el sistema (ej.: inicio de sesión, creación de tarjeta, edición de cuenta).
+    """
 
-    def __init__(
-        self,
-        id_usuario: UUID,
-        tipo_accion: str,
-        descripcion: str,
-        ip_origen: str,
-        resultado: str,
-        fecha_accion: datetime,
-    ):
-        self.id_accion: UUID = uuid.uuid4()
-        self.id_usuario: UUID = id_usuario
-        self.tipo_accion: str = tipo_accion
-        self.descripcion: str = descripcion
-        self.ip_origen: str = ip_origen
-        self.resultado: str = resultado
-        self.fecha_accion: datetime = fecha_accion
+    __tablename__ = "accion"
 
-    def get_id_accion(self) -> UUID:
-        return self.id_accion
+    id_accion: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id_usuario: Mapped[uuid.UUID] = mapped_column(ForeignKey("usuarios.id_usuario"))
 
-    def get_id_usuario(self) -> UUID:
-        return self.id_usuario
+    tipo_accion: Mapped[str] = mapped_column(
+        String(50)
+    )  # p.ej. "Login", "CrearTarjeta"
+    descripcion: Mapped[str] = mapped_column(String(255), default="")
+    ip_origen: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    resultado: Mapped[str] = mapped_column(
+        String(20), default="Exito"
+    )  # "Exito" / "Error"
+    fecha_accion: Mapped[date] = mapped_column(default=date.today)
 
-    def get_tipo_accion(self) -> str:
-        return self.tipo_accion
-
-    def get_descripcion(self) -> str:
-        return self.descripcion
-
-    def get_fecha_accion(self) -> datetime:
-        return self.fecha_accion
-
-    def get_ip_origen(self) -> str:
-        return self.ip_origen
-
-    def get_resultado(self) -> str:
-        return self.resultado
+    # ---- Métodos de negocio conservados del primer parcial ----
 
     def registrar_error(self, mensaje: str) -> None:
         self.resultado = "Error"

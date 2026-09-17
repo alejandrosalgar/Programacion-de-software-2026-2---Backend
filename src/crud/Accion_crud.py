@@ -1,86 +1,81 @@
-from uuid import UUID
+from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import UUID
 from entities.Accion import Accion
 
 
 class AccionCRUD:
     """
     Módulo CRUD para la entidad Accion.
-    Permite gestionar las acciones realizadas por los usuarios.
+    Permite registrar y consultar los eventos de auditoría generados
+    por las acciones de los usuarios en el sistema.
 
     Funciones principales:
-        - crear_accion(datos: dict, accion: Accion) -> Accion
-        - obtener_accion(datos: dict, id_accion: UUID) -> Accion
-        - obtener_acciones(datos: dict) -> list
-        - actualizar_accion(...) -> Accion
-        - eliminar_accion(datos: dict, id_accion: UUID) -> bool
+        - crear_accion(db: Session, accion: Accion) -> Accion
+        - obtener_accion(db: Session, id_accion: UUID) -> Accion
+        - obtener_acciones(db: Session) -> List[Accion]
+        - obtener_acciones_por_usuario(db: Session, id_usuario: UUID) -> List[Accion]
+        - actualizar_accion(db: Session, id_accion: UUID, **kwargs) -> Accion
+        - eliminar_accion(db: Session, id_accion: UUID) -> bool
 
     Notas:
-        - "datos" es un diccionario en memoria
-          (id_accion -> Accion).
+        - Se valida que exista un tipo_accion definido.
+        - Los registros de auditoría normalmente no se editan ni eliminan
+          en un sistema real; se dejan estas operaciones por completitud
+          del CRUD que exige el examen.
     """
 
-    def __init__(self, datos):
-        self.datos = datos
+    def __init__(self, db):
+        self.db = db
 
     @staticmethod
-    def crear_accion(datos: dict, accion: Accion):
+    def crear_accion(db: Session, accion: Accion):
         if not accion.tipo_accion or not accion.tipo_accion.strip():
             raise ValueError("El tipo de acción no puede estar vacío")
 
-        if not accion.descripcion or not accion.descripcion.strip():
-            raise ValueError("La descripción de la acción no puede estar vacía")
-
-        datos[accion.id_accion] = accion
-
+        db.add(accion)
+        db.commit()
+        db.refresh(accion)
         return accion
 
     @staticmethod
-    def obtener_accion(datos: dict, id_accion: UUID):
-        accion = datos.get(id_accion)
-
+    def obtener_accion(db: Session, id_accion: UUID):
+        accion = db.query(Accion).filter(Accion.id_accion == id_accion).first()
         if not accion:
             raise ValueError("Acción no encontrada")
-
         return accion
 
     @staticmethod
-    def obtener_acciones(datos: dict):
-        return list(datos.values())
+    def obtener_acciones(db: Session):
+        return db.query(Accion).all()
 
     @staticmethod
-    def actualizar_accion(
-        datos: dict,
-        id_accion: UUID,
-        tipo_accion: str,
-        descripcion: str,
-        ip_origen: str,
-        resultado: str,
-    ):
-        accion = datos.get(id_accion)
+    def obtener_acciones_por_usuario(db: Session, id_usuario: UUID):
+        return db.query(Accion).filter(Accion.id_usuario == id_usuario).all()
 
+    @staticmethod
+    def actualizar_accion(db: Session, id_accion: UUID, **kwargs):
+        accion = db.query(Accion).filter(Accion.id_accion == id_accion).first()
         if not accion:
             raise ValueError("Acción no encontrada")
 
-        if not tipo_accion or not tipo_accion.strip():
-            raise ValueError("El tipo de acción no puede estar vacío")
+        # kwargs esperados: tipo_accion, descripcion, ip_origen, resultado
+        for campo, valor in kwargs.items():
+            if valor is None:
+                continue
+            if not hasattr(accion, campo):
+                raise ValueError(f"El campo '{campo}' no existe en Accion")
+            setattr(accion, campo, valor)
 
-        if not descripcion or not descripcion.strip():
-            raise ValueError("La descripción de la acción no puede estar vacía")
-
-        accion.tipo_accion = tipo_accion
-        accion.descripcion = descripcion
-        accion.ip_origen = ip_origen
-        accion.resultado = resultado
-
+        db.commit()
+        db.refresh(accion)
         return accion
 
     @staticmethod
-    def eliminar_accion(datos: dict, id_accion: UUID) -> bool:
-        accion = datos.get(id_accion)
-
+    def eliminar_accion(db: Session, id_accion: UUID) -> bool:
+        accion = db.query(Accion).filter(Accion.id_accion == id_accion).first()
         if not accion:
             raise ValueError("Acción no encontrada")
 
-        del datos[id_accion]
-
+        db.delete(accion)
+        db.commit()
         return True
