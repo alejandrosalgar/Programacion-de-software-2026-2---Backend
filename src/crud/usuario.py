@@ -1,96 +1,117 @@
-from uuid import UUID
-
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import UUID
 from entities.usuario import Usuario
 
-usuarios: list[Usuario] = []
 
+class UsuarioCRUD:
+    """
+    Módulo CRUD para la entidad Usuario.
+    Permite gestionar los usuarios del sistema y autenticarlos.
 
-def _buscar_por_id(id_usuario: UUID) -> Usuario | None:
-    for usuario in usuarios:
-        if usuario.id_usuario == id_usuario:
-            return usuario
-    return None
+    Notas:
+        - Se valida que no se repita el nombre de usuario (comparación
+          insensible a mayúsculas/minúsculas, igual que la versión anterior).
+    """
 
+    def __init__(self, db):
+        self.db = db
 
-def _buscar_por_nombre(nombre_usuario: str) -> Usuario | None:
-    nombre = nombre_usuario.strip().lower()
-    for usuario in usuarios:
-        if usuario.nombre_usuario.lower() == nombre:
-            return usuario
-    return None
+    @staticmethod
+    def crear_usuario(db: Session, usuario: Usuario):
+        if not usuario.nombre_usuario or not usuario.nombre_usuario.strip():
+            raise ValueError("El nombre de usuario no puede estar vacío")
 
+        existente = (
+            db.query(Usuario)
+            .filter(
+                func.lower(Usuario.nombre_usuario)
+                == usuario.nombre_usuario.strip().lower()
+            )
+            .first()
+        )
+        if existente:
+            raise ValueError("Ya existe un usuario con ese nombre de usuario")
 
-def crear(
-    primer_nombre: str,
-    segundo_nombre: str,
-    primer_apellido: str,
-    segundo_apellido: str,
-    nombre_usuario: str,
-    clave: str,
-) -> Usuario | None:
-    if _buscar_por_nombre(nombre_usuario):
-        return None
+        db.add(usuario)
+        db.commit()
+        db.refresh(usuario)
+        return usuario
 
-    usuario = Usuario(
-        primer_nombre=primer_nombre,
-        segundo_nombre=segundo_nombre,
-        primer_apellido=primer_apellido,
-        segundo_apellido=segundo_apellido,
-        nombre_usuario=nombre_usuario,
-        clave=clave,
-    )
-    usuarios.append(usuario)
-    return usuario
+    @staticmethod
+    def obtener_usuario(db: Session, id_usuario: UUID):
+        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+        if not usuario:
+            raise ValueError("Usuario no encontrado")
+        return usuario
 
+    @staticmethod
+    def obtener_usuario_por_nombre(db: Session, nombre_usuario: str):
+        usuario = (
+            db.query(Usuario)
+            .filter(
+                func.lower(Usuario.nombre_usuario) == nombre_usuario.strip().lower()
+            )
+            .first()
+        )
+        if not usuario:
+            raise ValueError("Usuario no encontrado")
+        return usuario
 
-def eliminar(id_usuario: UUID) -> bool:
-    usuario = _buscar_por_id(id_usuario)
-    if usuario is None:
-        return False
-    usuarios.remove(usuario)
-    return True
+    @staticmethod
+    def obtener_usuarios(db: Session):
+        return db.query(Usuario).all()
 
+    @staticmethod
+    def actualizar_usuario(db: Session, id_usuario: UUID, **kwargs):
+        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+        if not usuario:
+            raise ValueError("Usuario no encontrado")
 
-def actualizar(
-    id_usuario: UUID,
-    primer_nombre: str | None = None,
-    segundo_nombre: str | None = None,
-    primer_apellido: str | None = None,
-    segundo_apellido: str | None = None,
-    nombre_usuario: str | None = None,
-    clave: str | None = None,
-) -> Usuario | None:
-    usuario = _buscar_por_id(id_usuario)
-    if usuario is None:
-        return None
+        if "nombre_usuario" in kwargs and kwargs["nombre_usuario"] is not None:
+            nuevo_nombre = kwargs["nombre_usuario"]
+            duplicado = (
+                db.query(Usuario)
+                .filter(
+                    func.lower(Usuario.nombre_usuario) == nuevo_nombre.strip().lower(),
+                    Usuario.id_usuario != id_usuario,
+                )
+                .first()
+            )
+            if duplicado:
+                raise ValueError("Ya existe otro usuario con ese nombre de usuario")
 
-    if nombre_usuario:
-        existente = _buscar_por_nombre(nombre_usuario)
-        if existente is not None and existente.id_usuario != id_usuario:
+        for campo, valor in kwargs.items():
+            if valor is None:
+                continue
+            if not hasattr(usuario, campo):
+                raise ValueError(f"El campo '{campo}' no existe en Usuario")
+            setattr(usuario, campo, valor.strip() if isinstance(valor, str) else valor)
+
+        db.commit()
+        db.refresh(usuario)
+        return usuario
+
+    @staticmethod
+    def eliminar_usuario(db: Session, id_usuario: UUID) -> bool:
+        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+        if not usuario:
+            raise ValueError("Usuario no encontrado")
+
+        db.delete(usuario)
+        db.commit()
+        return True
+
+    @staticmethod
+    def autenticar(db: Session, nombre_usuario: str, clave: str):
+        """Verifica credenciales para inicio de sesión. Retorna None si no coinciden."""
+        usuario = (
+            db.query(Usuario)
+            .filter(
+                func.lower(Usuario.nombre_usuario) == nombre_usuario.strip().lower()
+            )
+            .first()
+        )
+        if usuario is None or usuario.clave != clave:
             return None
-
-    if primer_nombre:
-        usuario.primer_nombre = primer_nombre.strip()
-    if segundo_nombre is not None:
-        usuario.segundo_nombre = segundo_nombre.strip()
-    if primer_apellido:
-        usuario.primer_apellido = primer_apellido.strip()
-    if segundo_apellido is not None:
-        usuario.segundo_apellido = segundo_apellido.strip()
-    if nombre_usuario:
-        usuario.nombre_usuario = nombre_usuario.strip()
-    if clave:
-        usuario.clave = clave
-
-    return usuario
-
-
-def obtener(nombre_usuario: str, clave: str) -> Usuario | None:
-    usuario = _buscar_por_nombre(nombre_usuario)
-    if usuario is None or usuario.clave != clave:
-        return None
-    return usuario
-
-
-def listar() -> list[Usuario]:
-    return list(usuarios)
+        return usuario
