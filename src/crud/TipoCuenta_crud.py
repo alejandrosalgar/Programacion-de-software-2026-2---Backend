@@ -1,105 +1,112 @@
-from uuid import UUID
+from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import UUID
 from entities.TipoCuenta import TipoCuenta
 
 
 class TipoCuentaCRUD:
     """
     Módulo CRUD para la entidad TipoCuenta.
-    Permite gestionar los tipos de cuenta que existen en el banco
+    Permite gestionar los tipos de cuenta que existen en el sistema
     (ahorros, corriente, nómina, etc.).
 
     Funciones principales:
-        - crear_tipo_cuenta(datos: dict, tipo: TipoCuenta) -> TipoCuenta
-        - obtener_tipo_cuenta(datos: dict, id_tipo: UUID) -> TipoCuenta
-        - obtener_tipos_cuenta(datos: dict) -> list
-        - actualizar_tipo_cuenta(...) -> TipoCuenta
-        - eliminar_tipo_cuenta(datos: dict, id_tipo: UUID) -> bool
+        - crear_tipo_cuenta(db: Session, tipo: TipoCuenta) -> TipoCuenta
+        - obtener_tipo_cuenta(db: Session, id_tipo_cuenta: UUID) -> TipoCuenta
+        - obtener_tipos_cuenta(db: Session) -> List[TipoCuenta]
+        - actualizar_tipo_cuenta(db: Session, id_tipo_cuenta: UUID, **kwargs) -> TipoCuenta
+        - eliminar_tipo_cuenta(db: Session, id_tipo_cuenta: UUID) -> bool
 
     Notas:
         - Se valida que no se repitan tipos de cuenta con el mismo nombre.
-        - "datos" es un diccionario en memoria
-          (id_tipo_cuenta -> TipoCuenta).
     """
 
-    def __init__(self, datos):
-        self.datos = datos
+    def __init__(self, db):
+        self.db = db
 
     @staticmethod
-    def crear_tipo_cuenta(datos: dict, tipo: TipoCuenta):
+    def crear_tipo_cuenta(db: Session, tipo: TipoCuenta):
         if not tipo.nombre or not tipo.nombre.strip():
             raise ValueError("El nombre del tipo de cuenta no puede estar vacío")
 
-        existente = next((t for t in datos.values() if t.nombre == tipo.nombre), None)
-
+        existente = (
+            db.query(TipoCuenta).filter(TipoCuenta.nombre == tipo.nombre).first()
+        )
         if existente:
             raise ValueError("El tipo de cuenta ya existe")
 
-        datos[tipo.id_tipo_cuenta] = tipo
-
+        db.add(tipo)
+        db.commit()
+        db.refresh(tipo)
         return tipo
 
     @staticmethod
-    def obtener_tipo_cuenta(datos: dict, id_tipo: UUID):
-        tipo = datos.get(id_tipo)
-
+    def obtener_tipo_cuenta(db: Session, id_tipo_cuenta: UUID):
+        tipo = (
+            db.query(TipoCuenta)
+            .filter(TipoCuenta.id_tipo_cuenta == id_tipo_cuenta)
+            .first()
+        )
         if not tipo:
             raise ValueError("Tipo de cuenta no encontrado")
-
         return tipo
 
     @staticmethod
-    def obtener_tipos_cuenta(datos: dict):
-        return list(datos.values())
+    def obtener_tipos_cuenta(db: Session):
+        return db.query(TipoCuenta).all()
 
     @staticmethod
     def actualizar_tipo_cuenta(
-        datos: dict,
-        id_tipo: UUID,
-        nombre: str,
-        descripcion: str,
-        tasa_interes: float,
-        monto_minimo_apertura: float,
-        requiere_mantenimiento: bool,
-        id_usuario_edicion: UUID,
+        db: Session, id_tipo_cuenta: UUID, id_usuario_edicion: UUID = None, **kwargs
     ):
-        tipo = datos.get(id_tipo)
-
+        tipo = (
+            db.query(TipoCuenta)
+            .filter(TipoCuenta.id_tipo_cuenta == id_tipo_cuenta)
+            .first()
+        )
         if not tipo:
             raise ValueError("Tipo de cuenta no encontrado")
 
-        if not nombre or not nombre.strip():
-            raise ValueError("El nombre del tipo de cuenta no puede estar vacío")
+        # kwargs esperados: nombre, descripcion, tasa_interes,
+        # monto_minimo_apertura, requiere_mantenimiento, estado
+        if "nombre" in kwargs and kwargs["nombre"] is not None:
+            nuevo_nombre = kwargs["nombre"]
+            if not nuevo_nombre.strip():
+                raise ValueError("El nombre del tipo de cuenta no puede estar vacío")
+            duplicado = (
+                db.query(TipoCuenta)
+                .filter(
+                    TipoCuenta.nombre == nuevo_nombre,
+                    TipoCuenta.id_tipo_cuenta != id_tipo_cuenta,
+                )
+                .first()
+            )
+            if duplicado:
+                raise ValueError("Ya existe otro tipo de cuenta con ese nombre")
 
-        # Verificar que no exista otro tipo de cuenta con el mismo nombre
-        existente = next(
-            (
-                t
-                for t in datos.values()
-                if t.id_tipo_cuenta != id_tipo and t.nombre == nombre
-            ),
-            None,
-        )
+        for campo, valor in kwargs.items():
+            if valor is None:
+                continue
+            if not hasattr(tipo, campo):
+                raise ValueError(f"El campo '{campo}' no existe en TipoCuenta")
+            setattr(tipo, campo, valor)
 
-        if existente:
-            raise ValueError("Ya existe otro tipo de cuenta con ese nombre")
+        if id_usuario_edicion is not None:
+            tipo.registrar_edicion(id_usuario_edicion)
 
-        tipo.set_nombre(nombre)
-        tipo.set_descripcion(descripcion)
-        tipo.set_tasa_interes(tasa_interes)
-        tipo.set_monto_minimo_apertura(monto_minimo_apertura)
-        tipo.set_requiere_mantenimiento(requiere_mantenimiento)
-
-        tipo.registrar_edicion(id_usuario_edicion)
-
+        db.commit()
+        db.refresh(tipo)
         return tipo
 
     @staticmethod
-    def eliminar_tipo_cuenta(datos: dict, id_tipo: UUID) -> bool:
-        tipo = datos.get(id_tipo)
-
+    def eliminar_tipo_cuenta(db: Session, id_tipo_cuenta: UUID) -> bool:
+        tipo = (
+            db.query(TipoCuenta)
+            .filter(TipoCuenta.id_tipo_cuenta == id_tipo_cuenta)
+            .first()
+        )
         if not tipo:
             raise ValueError("Tipo de cuenta no encontrado")
 
-        del datos[id_tipo]
-
+        db.delete(tipo)
+        db.commit()
         return True

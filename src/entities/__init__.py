@@ -6,6 +6,8 @@ from entities.sede import Sede
 from entities.sucursal import Sucursal
 from entities.Tarjeta import Tarjeta
 from entities.usuario import Usuario
+from entities.TipoCuenta import TipoCuenta
+from entities.Accion import Accion
 
 __all__ = [
     "Usuario",
@@ -16,4 +18,6 @@ __all__ = [
     "Beneficiario",
     "Tarjeta",
     "Cuenta",
+    "TipoCuenta",
+    "Accion",
 ]

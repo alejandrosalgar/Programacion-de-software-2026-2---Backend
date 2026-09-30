@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.connection import Base
 
@@ -12,7 +12,9 @@ class Cuenta(Base):
 
     id_cuenta: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     numero_cuenta: Mapped[str] = mapped_column(String(20), unique=True)
-    id_tipo_cuenta: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    id_tipo_cuenta: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tipo_cuenta.id_tipo_cuenta"), nullable=True
+    )
     id_usuario: Mapped[uuid.UUID] = mapped_column(ForeignKey("usuarios.id_usuario"))
     saldo: Mapped[float] = mapped_column(Float, default=0.0)
     estado: Mapped[str] = mapped_column(String(20), default="Activa")
@@ -25,6 +27,7 @@ class Cuenta(Base):
     )
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    tipo_cuenta: Mapped["TipoCuenta"] = relationship(back_populates="cuentas")
 
     def __str__(self) -> str:
         return (
