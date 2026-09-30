@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import UUID
 from entities.Tarjeta import Tarjeta
+from database.connection import get_session
 
 
 class TarjetaCRUD:
@@ -50,9 +51,12 @@ class TarjetaCRUD:
             raise ValueError("Tarjeta no encontrada")
         return tarjeta
 
-    @staticmethod
-    def obtener_tarjetas(db: Session):
-        return db.query(Tarjeta).all()
+    def obtener_tarjetas() -> list[Tarjeta]:
+        session = get_session()
+        try:
+            return session.query(Tarjeta).all()
+        finally:
+            session.close()
 
     @staticmethod
     def obtener_tarjetas_por_cuenta(db: Session, id_cuenta: UUID):

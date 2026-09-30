@@ -550,4 +550,5 @@ def seed() -> None:
         session.close()
 
 
-seed()
+if __name__ == "__main__":
+    seed()
