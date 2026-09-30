@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import UUID
 from entities.TipoCuenta import TipoCuenta
+from database.connection import get_session
 
 
 class TipoCuentaCRUD:
@@ -50,9 +51,12 @@ class TipoCuentaCRUD:
             raise ValueError("Tipo de cuenta no encontrado")
         return tipo
 
-    @staticmethod
-    def obtener_tipos_cuenta(db: Session):
-        return db.query(TipoCuenta).all()
+    def obtener_tipos_cuenta() -> list[TipoCuenta]:
+        session = get_session()
+        try:
+            return session.query(TipoCuenta).all()
+        finally:
+            session.close()
 
     @staticmethod
     def actualizar_tipo_cuenta(
@@ -66,8 +70,6 @@ class TipoCuentaCRUD:
         if not tipo:
             raise ValueError("Tipo de cuenta no encontrado")
 
-        # kwargs esperados: nombre, descripcion, tasa_interes,
-        # monto_minimo_apertura, requiere_mantenimiento, estado
         if "nombre" in kwargs and kwargs["nombre"] is not None:
             nuevo_nombre = kwargs["nombre"]
             if not nuevo_nombre.strip():

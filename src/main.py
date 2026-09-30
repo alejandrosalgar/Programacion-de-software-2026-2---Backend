@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.usuarios import usuarios_router
+from api.tipocuenta import tipocuenta_router
+from api.Accion import accion_router
+from api.tarjeta import tarjeta_router
 
 app = FastAPI(
     title="API Banco — Programacion de software 2026-2",
@@ -24,7 +27,9 @@ def raiz():
 
 
 app.include_router(usuarios_router)
-
+app.include_router(tipocuenta_router)
+app.include_router(accion_router)
+app.include_router(tarjeta_router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

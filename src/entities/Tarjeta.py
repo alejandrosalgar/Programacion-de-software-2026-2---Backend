@@ -28,3 +28,6 @@ class Tarjeta(Base):
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    def registrar_edicion(self, id_usuario_edicion: uuid.UUID) -> None:
+        self.id_usuario_edicion = id_usuario_edicion
+        self.fecha_edicion = datetime.now()
