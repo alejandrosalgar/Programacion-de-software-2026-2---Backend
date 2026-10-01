@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import UUID
 from entities.Accion import Accion
+from database.connection import get_session
 
 
 class AccionCRUD:
@@ -44,9 +45,13 @@ class AccionCRUD:
             raise ValueError("Acción no encontrada")
         return accion
 
-    @staticmethod
-    def obtener_acciones(db: Session):
-        return db.query(Accion).all()
+    def obtener_acciones() -> list[Accion]:
+        session = get_session()
+        try:
+            return session.query(Accion).all()
+        finally:
+            session.close()
+            session.close()
 
     @staticmethod
     def obtener_acciones_por_usuario(db: Session, id_usuario: UUID):

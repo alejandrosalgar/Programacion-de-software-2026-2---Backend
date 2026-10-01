@@ -1,19 +1,28 @@
-from dataclasses import dataclass, field
-from datetime import date
-from uuid import UUID, uuid4
+import uuid
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from database.connection import Base
 
 
-@dataclass
-class Empleado:
-    id_usuario: UUID
-    id_sucursal: UUID
-    cargo: str
-    id_empleado: UUID = field(default_factory=uuid4)
-    activo: bool = True
-    id_usuario_creacion: UUID | None = None
-    fecha_creacion: date = field(default_factory=date.today)
-    id_usuario_edicion: UUID | None = None
-    fecha_edicion: date | None = None
+class Empleado(Base):
+    __tablename__ = "empleados"
+
+    id_empleado: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id_usuario: Mapped[uuid.UUID] = mapped_column(ForeignKey("usuarios.id_usuario"))
+    id_sucursal: Mapped[uuid.UUID] = mapped_column(ForeignKey("sucursales.id_sucursal"))
+    cargo: Mapped[str] = mapped_column(String(100))
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    id_usuario_creacion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __str__(self) -> str:
         return (

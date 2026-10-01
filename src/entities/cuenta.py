@@ -5,6 +5,10 @@ from sqlalchemy import Date, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.connection import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from entities.TipoCuenta import TipoCuenta
 
 
 class Cuenta(Base):
