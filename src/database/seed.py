@@ -347,9 +347,12 @@ def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
             .filter_by(numero_cuenta=datos["numero_cuenta"])
             .first()
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             session.query(Cuenta).filter_by(numero_cuenta=datos["numero_cuenta"]).first()
 >>>>>>> fece4e4d85a2c5c9f8b452670fa1f68a4f1036ff
+=======
+>>>>>>> a6517e86a0a59fe6e01be82df6eff4c2819af066
         )
         if existente:
             print(f"  Cuenta '{datos['numero_cuenta']}' ya existe.")
@@ -596,4 +599,9 @@ def seed() -> None:
         session.close()
 
 
+<<<<<<< HEAD
 seed()
+=======
+if __name__ == "__main__":
+    seed()
+>>>>>>> a6517e86a0a59fe6e01be82df6eff4c2819af066
