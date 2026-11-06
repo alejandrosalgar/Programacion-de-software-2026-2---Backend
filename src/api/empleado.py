@@ -21,16 +21,10 @@ empleados_router = APIRouter(prefix="/empleados", tags=["empleados"])
 def get_empleados() -> Dict[str, Any]:
     empleados = empleado_crud.listar()
 
-    if not empleados:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND.value,
-            detail="No se encontraron empleados",
-        )
-
     return {
         "data": empleados,
         "status": HTTPStatus.OK.value,
-        "message": "Empleados encontrados",
+        "message": "Empleados encontrados" if empleados else "No hay empleados",
     }
 
 
