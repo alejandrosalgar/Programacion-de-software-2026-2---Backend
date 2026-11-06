@@ -330,3 +330,7 @@ No hace falta reescribir los menus. El cambio vive en `entities` (modelos) y `cr
 - [SQLAlchemy 2.0 — ORM](https://docs.sqlalchemy.org/en/20/orm/)
 - [Neon — Connect from any application](https://neon.tech/docs/connect/connect-from-any-app)
 - [Neon + SQLAlchemy](https://neon.tech/docs/guides/sqlalchemy)
+
+Examen #2  video
+ arl https://drive.google.com/file/d/1xAIbVYxoVSv-FO0vc2h0y4I2EElkPyf_/view?usp=sharing
+ Mateo Chavarria Callejas 

@@ -1,19 +1,28 @@
-from dataclasses import dataclass, field
-from datetime import date
-from uuid import UUID, uuid4
+import uuid
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from database.connection import Base
 
 
-@dataclass
-class Sucursal:
-    nombre: str
-    direccion: str
-    ciudad: str
-    telefono: str
-    id_sucursal: UUID = field(default_factory=uuid4)
-    id_usuario_creacion: UUID | None = None
-    fecha_creacion: date = field(default_factory=date.today)
-    id_usuario_edicion: UUID | None = None
-    fecha_edicion: date | None = None
+class Sucursal(Base):
+    __tablename__ = "sucursales"
+
+    id_sucursal: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    nombre: Mapped[str] = mapped_column(String(100))
+    direccion: Mapped[str] = mapped_column(String(200))
+    ciudad: Mapped[str] = mapped_column(String(100))
+    telefono: Mapped[str] = mapped_column(String(30))
+    id_usuario_creacion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __str__(self) -> str:
         return (

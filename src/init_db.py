@@ -4,6 +4,6 @@ from entities.Tarjeta import Tarjeta
 from entities.Accion import Accion
 from entities.cuenta import Cuenta
 from entities.usuario import Usuario
-from entities.sede import Sede
 
 Base.metadata.create_all(bind=engine)
+print("Las tablas ya estan creadas correctamente.")

@@ -1,117 +1,120 @@
+from typing import Any
+from uuid import UUID
+
 from sqlalchemy import func
-from sqlalchemy.orm import Session
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.exc import IntegrityError
+
+from database.connection import get_session
 from entities.usuario import Usuario
 
 
-class UsuarioCRUD:
-    """
-    Módulo CRUD para la entidad Usuario.
-    Permite gestionar los usuarios del sistema y autenticarlos.
+def _buscar_por_id(session, id_usuario: UUID) -> Usuario | None:
+    return session.query(Usuario).filter_by(id_usuario=id_usuario).first()
 
-    Notas:
-        - Se valida que no se repita el nombre de usuario (comparación
-          insensible a mayúsculas/minúsculas, igual que la versión anterior).
-    """
 
-    def __init__(self, db):
-        self.db = db
+def _buscar_por_nombre(session, nombre_usuario: str) -> Usuario | None:
+    nombre = nombre_usuario.strip().lower()
+    return (
+        session.query(Usuario)
+        .filter(func.lower(Usuario.nombre_usuario) == nombre)
+        .first()
+    )
 
-    @staticmethod
-    def crear_usuario(db: Session, usuario: Usuario):
-        if not usuario.nombre_usuario or not usuario.nombre_usuario.strip():
-            raise ValueError("El nombre de usuario no puede estar vacío")
 
-        existente = (
-            db.query(Usuario)
-            .filter(
-                func.lower(Usuario.nombre_usuario)
-                == usuario.nombre_usuario.strip().lower()
-            )
-            .first()
+def crear(
+    primer_nombre: str,
+    segundo_nombre: str,
+    primer_apellido: str,
+    segundo_apellido: str,
+    nombre_usuario: str,
+    clave: str,
+) -> Usuario | None:
+    session = get_session()
+    try:
+        if _buscar_por_nombre(session, nombre_usuario):
+            return None
+
+        usuario = Usuario(
+            primer_nombre=primer_nombre.strip(),
+            segundo_nombre=(segundo_nombre or "").strip(),
+            primer_apellido=primer_apellido.strip(),
+            segundo_apellido=(segundo_apellido or "").strip(),
+            nombre_usuario=nombre_usuario.strip(),
+            clave=clave,
         )
-        if existente:
-            raise ValueError("Ya existe un usuario con ese nombre de usuario")
-
-        db.add(usuario)
-        db.commit()
-        db.refresh(usuario)
+        session.add(usuario)
+        session.commit()
+        session.refresh(usuario)
         return usuario
+    except IntegrityError:
+        session.rollback()
+        return None
+    finally:
+        session.close()
 
-    @staticmethod
-    def obtener_usuario(db: Session, id_usuario: UUID):
-        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
-        if not usuario:
-            raise ValueError("Usuario no encontrado")
-        return usuario
 
-    @staticmethod
-    def obtener_usuario_por_nombre(db: Session, nombre_usuario: str):
-        usuario = (
-            db.query(Usuario)
-            .filter(
-                func.lower(Usuario.nombre_usuario) == nombre_usuario.strip().lower()
-            )
-            .first()
-        )
-        if not usuario:
-            raise ValueError("Usuario no encontrado")
-        return usuario
-
-    @staticmethod
-    def obtener_usuarios(db: Session):
-        return db.query(Usuario).all()
-
-    @staticmethod
-    def actualizar_usuario(db: Session, id_usuario: UUID, **kwargs):
-        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
-        if not usuario:
-            raise ValueError("Usuario no encontrado")
-
-        if "nombre_usuario" in kwargs and kwargs["nombre_usuario"] is not None:
-            nuevo_nombre = kwargs["nombre_usuario"]
-            duplicado = (
-                db.query(Usuario)
-                .filter(
-                    func.lower(Usuario.nombre_usuario) == nuevo_nombre.strip().lower(),
-                    Usuario.id_usuario != id_usuario,
-                )
-                .first()
-            )
-            if duplicado:
-                raise ValueError("Ya existe otro usuario con ese nombre de usuario")
-
-        for campo, valor in kwargs.items():
-            if valor is None:
-                continue
-            if not hasattr(usuario, campo):
-                raise ValueError(f"El campo '{campo}' no existe en Usuario")
-            setattr(usuario, campo, valor.strip() if isinstance(valor, str) else valor)
-
-        db.commit()
-        db.refresh(usuario)
-        return usuario
-
-    @staticmethod
-    def eliminar_usuario(db: Session, id_usuario: UUID) -> bool:
-        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
-        if not usuario:
-            raise ValueError("Usuario no encontrado")
-
-        db.delete(usuario)
-        db.commit()
+def eliminar(id_usuario: UUID) -> bool:
+    session = get_session()
+    try:
+        usuario = _buscar_por_id(session, id_usuario)
+        if usuario is None:
+            return False
+        session.delete(usuario)
+        session.commit()
         return True
+    finally:
+        session.close()
 
-    @staticmethod
-    def autenticar(db: Session, nombre_usuario: str, clave: str):
-        """Verifica credenciales para inicio de sesión. Retorna None si no coinciden."""
-        usuario = (
-            db.query(Usuario)
-            .filter(
-                func.lower(Usuario.nombre_usuario) == nombre_usuario.strip().lower()
-            )
-            .first()
-        )
+
+def actualizar(id_usuario: UUID, nombre_usuario: str, **kwargs: Any) -> Usuario | None:
+    session = get_session()
+    try:
+        usuario = _buscar_por_id(session, id_usuario)
+        if usuario is None:
+            return None
+
+        if nombre_usuario:
+            existente = _buscar_por_nombre(session, nombre_usuario)
+            if existente is not None and existente.id_usuario != id_usuario:
+                return None
+
+        for key, value in kwargs.items():
+            if value is not None:
+                setattr(usuario, key, value.strip())
+
+        session.commit()
+        session.refresh(usuario)
+        return usuario
+    except IntegrityError:
+        session.rollback()
+        return None
+    finally:
+        session.close()
+
+
+def obtener(nombre_usuario: str, clave: str) -> Usuario | None:
+    session = get_session()
+    try:
+        usuario = _buscar_por_nombre(session, nombre_usuario)
         if usuario is None or usuario.clave != clave:
             return None
         return usuario
+    finally:
+        session.close()
+
+
+def obtener_por_id(id_usuario: UUID) -> Usuario | None:
+    session = get_session()
+    try:
+        return _buscar_por_id(session, id_usuario)
+    finally:
+        session.close()
+
+
+def listar() -> list[Usuario]:
+    session = get_session()
+    try:
+        return session.query(Usuario).all()
+    finally:
+        session.close()
+        session.close()
