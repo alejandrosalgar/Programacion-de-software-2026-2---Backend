@@ -1,16 +1,14 @@
-from datetime import date
+from datetime import datetime
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
+from database.connection import get_session
 from entities.sucursal import Sucursal
 
-sucursales: list[Sucursal] = []
 
-
-def _buscar_por_id(id_sucursal: UUID) -> Sucursal | None:
-    for sucursal in sucursales:
-        if sucursal.id_sucursal == id_sucursal:
-            return sucursal
-    return None
+def _buscar_por_id(session, id_sucursal: UUID) -> Sucursal | None:
+    return session.query(Sucursal).filter_by(id_sucursal=id_sucursal).first()
 
 
 def crear(
@@ -20,54 +18,89 @@ def crear(
     telefono: str,
     id_usuario_creacion: UUID | None = None,
 ) -> Sucursal:
-    sucursal = Sucursal(
-        nombre=nombre,
-        direccion=direccion,
-        ciudad=ciudad,
-        telefono=telefono,
-        id_usuario_creacion=id_usuario_creacion,
-    )
-    sucursales.append(sucursal)
-    return sucursal
+    session = get_session()
+    try:
+        sucursal = Sucursal(
+            nombre=nombre,
+            direccion=direccion,
+            ciudad=ciudad,
+            telefono=telefono,
+            id_usuario_creacion=id_usuario_creacion,
+        )
+        session.add(sucursal)
+        session.commit()
+        session.refresh(sucursal)
+        return sucursal
+    except IntegrityError:
+        session.rollback()
+        return None
+    finally:
+        session.close()
 
 
 def eliminar(id_sucursal: UUID) -> bool:
-    sucursal = _buscar_por_id(id_sucursal)
-    if sucursal is None:
+    session = get_session()
+    try:
+        sucursal = _buscar_por_id(session, id_sucursal)
+        if sucursal is None:
+            return False
+        session.delete(sucursal)
+        session.commit()
+        return True
+    except IntegrityError:
+        session.rollback()
         return False
-    sucursales.remove(sucursal)
-    return True
+    finally:
+        session.close()
 
 
 def actualizar(
     id_sucursal: UUID,
-    id_usuario_edicion: UUID,
     nombre: str | None = None,
     direccion: str | None = None,
     ciudad: str | None = None,
     telefono: str | None = None,
+    id_usuario_edicion: UUID | None = None,
 ) -> Sucursal | None:
-    sucursal = _buscar_por_id(id_sucursal)
-    if sucursal is None:
+    session = get_session()
+    try:
+        sucursal = _buscar_por_id(session, id_sucursal)
+        if sucursal is None:
+            return None
+
+        if nombre is not None:
+            sucursal.nombre = nombre
+        if direccion is not None:
+            sucursal.direccion = direccion
+        if ciudad is not None:
+            sucursal.ciudad = ciudad
+        if telefono is not None:
+            sucursal.telefono = telefono
+        if id_usuario_edicion is not None:
+            sucursal.id_usuario_edicion = id_usuario_edicion
+        sucursal.fecha_edicion = datetime.now()
+
+        session.commit()
+        session.refresh(sucursal)
+        return sucursal
+    except IntegrityError:
+        session.rollback()
         return None
-
-    if nombre:
-        sucursal.nombre = nombre
-    if direccion:
-        sucursal.direccion = direccion
-    if ciudad:
-        sucursal.ciudad = ciudad
-    if telefono:
-        sucursal.telefono = telefono
-
-    sucursal.id_usuario_edicion = id_usuario_edicion
-    sucursal.fecha_edicion = date.today()
-    return sucursal
+    finally:
+        session.close()
 
 
 def obtener(id_sucursal: UUID) -> Sucursal | None:
-    return _buscar_por_id(id_sucursal)
+    session = get_session()
+    try:
+        return _buscar_por_id(session, id_sucursal)
+    finally:
+        session.close()
 
 
 def listar() -> list[Sucursal]:
-    return list(sucursales)
+    session = get_session()
+    try:
+        return session.query(Sucursal).all()
+    finally:
+        session.close()

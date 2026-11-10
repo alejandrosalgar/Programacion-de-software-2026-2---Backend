@@ -2,10 +2,14 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.cuenta import cuentas_router
 from api.cuota import cuotas_router
 from api.empleado import empleados_router
+from api.tarjeta import tarjeta_router
 from api.sucursal import sucursales_router
+from api.tipocuenta import tipocuenta_router
 from api.usuarios import usuarios_router
+from api.Accion import accion_router
 
 app = FastAPI(
     title="API Banco — Programacion de software 2026-2",
@@ -27,9 +31,13 @@ def raiz():
 
 
 app.include_router(usuarios_router)
+app.include_router(cuentas_router)
 app.include_router(sucursales_router)
 app.include_router(empleados_router)
 app.include_router(cuotas_router)
+app.include_router(tarjeta_router)
+app.include_router(tipocuenta_router)
+app.include_router(accion_router)
 
 
 if __name__ == "__main__":

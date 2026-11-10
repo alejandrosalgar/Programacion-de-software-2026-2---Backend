@@ -21,16 +21,10 @@ sucursales_router = APIRouter(prefix="/sucursales", tags=["sucursales"])
 def get_sucursales() -> Dict[str, Any]:
     sucursales = sucursal_crud.listar()
 
-    if not sucursales:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND.value,
-            detail="No se encontraron sucursales",
-        )
-
     return {
         "data": sucursales,
         "status": HTTPStatus.OK.value,
-        "message": "Sucursales encontradas",
+        "message": "Sucursales encontradas" if sucursales else "No hay sucursales",
     }
 
 
@@ -85,8 +79,13 @@ def actualizar_sucursal(id_sucursal: UUID, datos: SucursalUpdate):
 
 @sucursales_router.delete("/{id_sucursal}", status_code=HTTPStatus.NO_CONTENT.value)
 def eliminar_sucursal(id_sucursal: UUID):
-    if not sucursal_crud.eliminar(id_sucursal):
+    if sucursal_crud.obtener(id_sucursal) is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value,
             detail="Sucursal no encontrada",
+        )
+    if not sucursal_crud.eliminar(id_sucursal):
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="No se puede eliminar la sucursal porque tiene empleados u otros registros asociados",
         )

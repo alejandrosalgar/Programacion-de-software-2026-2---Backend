@@ -1,607 +1,285 @@
+from __future__ import annotations
+
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from uuid import UUID
+from uuid import NAMESPACE_URL, uuid5
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database.connection import Base, engine, get_session
-from entities.cuenta import Cuenta
+from entities.Accion import Accion
+from entities.TipoCuenta import TipoCuenta
 from entities.Tarjeta import Tarjeta
+from entities.cuenta import Cuenta
 from entities.cuota import Cuota
 from entities.empleado import Empleado
 from entities.sucursal import Sucursal
 from entities.usuario import Usuario
-from entities.TipoCuenta import TipoCuenta
-from entities.Accion import Accion
-from entities.sede import Sede
 
-USUARIOS_SEED = [
-    {
-        "primer_nombre": "Ana",
-        "segundo_nombre": "Maria",
-        "primer_apellido": "Restrepo",
-        "segundo_apellido": "Lopez",
-        "nombre_usuario": "ana.restrepo",
-        "clave": "123456",
-    },
-    {
-        "primer_nombre": "Carlos",
-        "segundo_nombre": "Andres",
-        "primer_apellido": "Ruiz",
-        "segundo_apellido": "Gomez",
-        "nombre_usuario": "carlos.ruiz",
-        "clave": "123456",
-    },
-    {
-        "primer_nombre": "Laura",
-        "segundo_nombre": "",
-        "primer_apellido": "Mendez",
-        "segundo_apellido": "Castro",
-        "nombre_usuario": "laura.mendez",
-        "clave": "123456",
-    },
-]
-
-TIPOS_CUENTA_SEED = [
-    {
-        "nombre": "Ahorros",
-        "descripcion": "Cuenta de ahorros tradicional",
-        "tasa_interes": 2.5,
-        "monto_minimo_apertura": 50_000.0,
-        "requiere_mantenimiento": False,
-        "estado": "Activo",
-    },
-    {
-        "nombre": "Corriente",
-        "descripcion": "Cuenta corriente para uso transaccional frecuente",
-        "tasa_interes": 0.0,
-        "monto_minimo_apertura": 200_000.0,
-        "requiere_mantenimiento": True,
-        "estado": "Activo",
-    },
-    {
-        "nombre": "Nomina",
-        "descripcion": "Cuenta de nómina sin cuota de manejo",
-        "tasa_interes": 1.0,
-        "monto_minimo_apertura": 0.0,
-        "requiere_mantenimiento": False,
-        "estado": "Activo",
-    },
-]
-
-CUENTAS_SEED = [
-    {
-        "nombre_usuario": "ana.restrepo",
-        "numero_cuenta": "1001000001",
-        "saldo": 2_500_000.0,
-        "estado": "Activa",
-        "tipo_cuenta": "Ahorros",
-    },
-    {
-        "nombre_usuario": "carlos.ruiz",
-        "numero_cuenta": "1001000002",
-        "saldo": 800_000.0,
-        "estado": "Activa",
-        "tipo_cuenta": "Corriente",
-    },
-    {
-        "nombre_usuario": "laura.mendez",
-        "numero_cuenta": "1001000003",
-        "saldo": 150_000.0,
-        "estado": "Activa",
-        "tipo_cuenta": "Nomina",
-    },
-]
-
-TARJETAS_SEED = [
-    {
-        "numero_cuenta": "1001000001",
-        "numero_tarjeta": "4532123456789012",
-        "tipo_tarjeta": "debito",
-        "cvv": "123",
-        "limite_credito": 0.0,
-        "estado": "Activa",
-    },
-    {
-        "numero_cuenta": "1001000001",
-        "numero_tarjeta": "5412345678901234",
-        "tipo_tarjeta": "credito",
-        "cvv": "456",
-        "limite_credito": 5_000_000.0,
-        "estado": "Activa",
-    },
-    {
-        "numero_cuenta": "1001000002",
-        "numero_tarjeta": "4111222233334444",
-        "tipo_tarjeta": "credito",
-        "cvv": "789",
-        "limite_credito": 3_000_000.0,
-        "estado": "Activa",
-    },
-    {
-        "numero_cuenta": "1001000003",
-        "numero_tarjeta": "4000123412341234",
-        "tipo_tarjeta": "debito",
-        "cvv": "321",
-        "limite_credito": 0.0,
-        "estado": "Activa",
-    },
-]
-
-<<<<<<< HEAD
-SUCURSALES_SEED = [
-    {
-        "nombre": "Sucursal Centro",
-        "direccion": "Carrera 7 # 12-34",
-        "ciudad": "Bogota",
-        "telefono": "6015550101",
-    },
-    {
-        "nombre": "Sucursal Norte",
-        "direccion": "Calle 100 # 15-20",
-        "ciudad": "Bogota",
-        "telefono": "6015550102",
-    },
-    {
-        "nombre": "Sucursal Medellin",
-        "direccion": "Carrera 43A # 1-50",
-        "ciudad": "Medellin",
-        "telefono": "6045550103",
-    },
-    {
-        "nombre": "Sucursal Cali",
-        "direccion": "Calle 10 # 4-25",
-        "ciudad": "Cali",
-        "telefono": "6025550104",
-    },
-    {
-        "nombre": "Sucursal Barranquilla",
-        "direccion": "Carrera 53 # 80-10",
-        "ciudad": "Barranquilla",
-        "telefono": "6055550105",
-    },
-]
-
-EMPLEADOS_SEED = [
-    {
-        "nombre_usuario": "ana.restrepo",
-        "nombre_sucursal": "Sucursal Centro",
-        "cargo": "Gerente",
-    },
-    {
-        "nombre_usuario": "carlos.ruiz",
-        "nombre_sucursal": "Sucursal Norte",
-        "cargo": "Asesor",
-    },
-    {
-        "nombre_usuario": "laura.mendez",
-        "nombre_sucursal": "Sucursal Medellin",
-        "cargo": "Cajera",
-    },
-    {
-        "nombre_usuario": "ana.restrepo",
-        "nombre_sucursal": "Sucursal Cali",
-        "cargo": "Asesora comercial",
-    },
-    {
-        "nombre_usuario": "carlos.ruiz",
-        "nombre_sucursal": "Sucursal Barranquilla",
-        "cargo": "Analista de credito",
-    },
-]
-
-CUOTAS_SEED = [
-    {
-        "id_prestamo": UUID("00000000-0000-0000-0000-000000000001"),
-        "numero_cuota": 1,
-        "valor": 450_000.0,
-        "fecha_vencimiento": date(2026, 10, 15),
-        "estado": "pendiente",
-        "nombre_usuario": "ana.restrepo",
-    },
-    {
-        "id_prestamo": UUID("00000000-0000-0000-0000-000000000001"),
-        "numero_cuota": 2,
-        "valor": 450_000.0,
-        "fecha_vencimiento": date(2026, 11, 15),
-        "estado": "pendiente",
-        "nombre_usuario": "ana.restrepo",
-    },
-    {
-        "id_prestamo": UUID("00000000-0000-0000-0000-000000000001"),
-        "numero_cuota": 3,
-        "valor": 450_000.0,
-        "fecha_vencimiento": date(2026, 12, 15),
-        "estado": "pendiente",
-        "nombre_usuario": "ana.restrepo",
-    },
-    {
-        "id_prestamo": UUID("00000000-0000-0000-0000-000000000002"),
-        "numero_cuota": 1,
-        "valor": 275_000.0,
-        "fecha_vencimiento": date(2026, 10, 30),
-        "estado": "pendiente",
-        "nombre_usuario": "carlos.ruiz",
-    },
-    {
-        "id_prestamo": UUID("00000000-0000-0000-0000-000000000002"),
-        "numero_cuota": 2,
-        "valor": 275_000.0,
-        "fecha_vencimiento": date(2026, 11, 30),
-        "estado": "pendiente",
-        "nombre_usuario": "carlos.ruiz",
-    },
-    {
-        "id_prestamo": UUID("00000000-0000-0000-0000-000000000003"),
-        "numero_cuota": 1,
-        "valor": 180_000.0,
-        "fecha_vencimiento": date(2026, 12, 5),
-        "estado": "pagada",
-        "nombre_usuario": "laura.mendez",
-=======
-ACCIONES_SEED = [
-    {
-        "nombre_usuario": "ana.restrepo",
-        "tipo_accion": "Login",
-        "descripcion": "Inicio de sesión exitoso",
-        "ip_origen": "192.168.1.10",
-        "resultado": "Exito",
-    },
-    {
-        "nombre_usuario": "carlos.ruiz",
-        "tipo_accion": "CrearTarjeta",
-        "descripcion": "Creación de tarjeta de crédito",
-        "ip_origen": "192.168.1.15",
-        "resultado": "Exito",
-    },
-    {
-        "nombre_usuario": "laura.mendez",
-        "tipo_accion": "Login",
-        "descripcion": "Intento fallido de inicio de sesión",
-        "ip_origen": "192.168.1.22",
-        "resultado": "Error",
-    },
-]
+MINIMO_POR_ENTIDAD = 30
 
 
-SEDES_SEED = [
-    {
-        "nombre": "Sede Principal Medellin",
-        "direccion": "Carrera 50 # 30-40",
-        "ciudad": "Medellin",
-        "telefono": "6042345678",
-        "nombre_usuario_creador": "ana.restrepo",
-    },
-    {
-        "nombre": "Sede Norte Bogota",
-        "direccion": "Calle 100 # 15-20",
-        "ciudad": "Bogota",
-        "telefono": "6013456789",
-        "nombre_usuario_creador": "carlos.ruiz",
->>>>>>> fece4e4d85a2c5c9f8b452670fa1f68a4f1036ff
-    },
-]
+def _contar(session, modelo) -> int:
+    return session.query(modelo).count()
 
 
-def seed_usuarios(session) -> dict[str, Usuario]:
-    usuarios: dict[str, Usuario] = {}
-    for datos in USUARIOS_SEED:
-        existente = (
-            session.query(Usuario)
-            .filter_by(nombre_usuario=datos["nombre_usuario"])
-            .first()
+def _sembrar_usuarios(session) -> list[Usuario]:
+    while _contar(session, Usuario) < MINIMO_POR_ENTIDAD:
+        indice = _contar(session, Usuario) + 1
+        nombre_usuario = f"semilla.usuario.{indice:03d}"
+        if session.query(Usuario).filter_by(nombre_usuario=nombre_usuario).first():
+            nombre_usuario = f"semilla.usuario.extra.{indice:03d}"
+
+        session.add(
+            Usuario(
+                primer_nombre=f"Usuario{indice:03d}",
+                segundo_nombre="Demo",
+                primer_apellido="Semilla",
+                segundo_apellido=f"Banco{indice:03d}",
+                nombre_usuario=nombre_usuario,
+                clave="demo-cambio-local",
+            )
         )
-        if existente:
-            print(f"  Usuario '{datos['nombre_usuario']}' ya existe.")
-            usuarios[datos["nombre_usuario"]] = existente
+        session.flush()
+
+    return session.query(Usuario).order_by(Usuario.nombre_usuario).all()
+
+
+def _sembrar_tipos_cuenta(session, usuarios: list[Usuario]) -> list[TipoCuenta]:
+    tipos_iniciales = [
+        ("Ahorros", "Cuenta de ahorro", 2.5, 50_000, False),
+        ("Corriente", "Cuenta para operaciones frecuentes", 0.0, 200_000, True),
+        ("Nomina", "Cuenta para recibir nómina", 1.0, 0, False),
+    ]
+    for nombre, descripcion, tasa, minimo, mantenimiento in tipos_iniciales:
+        if not session.query(TipoCuenta).filter_by(nombre=nombre).first():
+            session.add(
+                TipoCuenta(
+                    nombre=nombre,
+                    descripcion=descripcion,
+                    tasa_interes=tasa,
+                    monto_minimo_apertura=minimo,
+                    requiere_mantenimiento=mantenimiento,
+                    estado="Activo",
+                    id_usuario_creacion=usuarios[0].id_usuario,
+                )
+            )
+            session.flush()
+
+    while _contar(session, TipoCuenta) < MINIMO_POR_ENTIDAD:
+        indice = _contar(session, TipoCuenta) + 1
+        nombre = f"Tipo semilla {indice:03d}"
+        if session.query(TipoCuenta).filter_by(nombre=nombre).first():
+            nombre = f"Tipo semilla extra {indice:03d}"
+        session.add(
+            TipoCuenta(
+                nombre=nombre,
+                descripcion=f"Producto de demostración {indice:03d}",
+                tasa_interes=round((indice % 8) * 0.35, 2),
+                monto_minimo_apertura=indice * 10_000,
+                requiere_mantenimiento=indice % 2 == 0,
+                estado="Activo",
+                id_usuario_creacion=usuarios[indice % len(usuarios)].id_usuario,
+            )
+        )
+        session.flush()
+
+    return session.query(TipoCuenta).order_by(TipoCuenta.nombre).all()
+
+
+def _sembrar_sucursales(session, usuarios: list[Usuario]) -> list[Sucursal]:
+    ciudades = ["Medellín", "Bogotá", "Cali", "Manizales", "Pereira"]
+    while _contar(session, Sucursal) < MINIMO_POR_ENTIDAD:
+        indice = _contar(session, Sucursal) + 1
+        nombre = f"Sucursal Semilla {indice:03d}"
+        if session.query(Sucursal).filter_by(nombre=nombre).first():
+            nombre = f"Sucursal Semilla Extra {indice:03d}"
+        session.add(
+            Sucursal(
+                nombre=nombre,
+                direccion=f"Carrera {10 + indice} #{indice:02d}-20",
+                ciudad=ciudades[(indice - 1) % len(ciudades)],
+                telefono=f"60{(indice % 5) + 1}555{indice:04d}",
+                id_usuario_creacion=usuarios[indice % len(usuarios)].id_usuario,
+            )
+        )
+        session.flush()
+
+    return session.query(Sucursal).order_by(Sucursal.id_sucursal).all()
+
+
+def _sembrar_cuentas(
+    session, usuarios: list[Usuario], tipos: list[TipoCuenta]
+) -> list[Cuenta]:
+    indice = 1
+    while _contar(session, Cuenta) < MINIMO_POR_ENTIDAD:
+        numero = f"2000{indice:06d}"
+        indice += 1
+        if session.query(Cuenta).filter_by(numero_cuenta=numero).first():
             continue
 
-        usuario = Usuario(**datos)
-        session.add(usuario)
-        usuarios[datos["nombre_usuario"]] = usuario
-        print(f"  Usuario '{datos['nombre_usuario']}' creado.")
-
-    session.flush()
-    return usuarios
-
-
-def seed_tipos_cuenta(session, usuarios: dict[str, Usuario]) -> dict[str, TipoCuenta]:
-    tipos: dict[str, TipoCuenta] = {}
-    usuario_auditoria = next(iter(usuarios.values()))
-
-    for datos in TIPOS_CUENTA_SEED:
-        existente = session.query(TipoCuenta).filter_by(nombre=datos["nombre"]).first()
-        if existente:
-            print(f"  TipoCuenta '{datos['nombre']}' ya existe.")
-            tipos[datos["nombre"]] = existente
-            continue
-
-        tipo = TipoCuenta(
-            nombre=datos["nombre"],
-            descripcion=datos["descripcion"],
-            tasa_interes=datos["tasa_interes"],
-            monto_minimo_apertura=datos["monto_minimo_apertura"],
-            requiere_mantenimiento=datos["requiere_mantenimiento"],
-            estado=datos["estado"],
-            id_usuario_creacion=usuario_auditoria.id_usuario,
-            fecha_creacion=date.today(),
-        )
-        session.add(tipo)
-        tipos[datos["nombre"]] = tipo
-        print(f"  TipoCuenta '{datos['nombre']}' creado.")
-
-    session.flush()
-    return tipos
-
-
-def seed_cuentas(
-    session, usuarios: dict[str, Usuario], tipos_cuenta: dict[str, TipoCuenta]
-) -> dict[str, Cuenta]:
-def seed_cuentas(session, usuarios: dict[str, Usuario]) -> dict[str, Cuenta]:
-    cuentas: dict[str, Cuenta] = {}
-    ahora = datetime.now()
-    for datos in CUENTAS_SEED:
-        existente = (
-            session.query(Cuenta)
-            .filter_by(numero_cuenta=datos["numero_cuenta"])
-            .first()
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-            session.query(Cuenta).filter_by(numero_cuenta=datos["numero_cuenta"]).first()
->>>>>>> fece4e4d85a2c5c9f8b452670fa1f68a4f1036ff
-=======
->>>>>>> a6517e86a0a59fe6e01be82df6eff4c2819af066
-        )
-        if existente:
-            print(f"  Cuenta '{datos['numero_cuenta']}' ya existe.")
-            cuentas[datos["numero_cuenta"]] = existente
-            continue
-
-        titular = usuarios[datos["nombre_usuario"]]
-        tipo_cuenta = tipos_cuenta[datos["tipo_cuenta"]]
-        cuenta = Cuenta(
-            numero_cuenta=datos["numero_cuenta"],
-            id_usuario=titular.id_usuario,
-            id_tipo_cuenta=tipo_cuenta.id_tipo_cuenta,
-        cuenta = Cuenta(
-            numero_cuenta=datos["numero_cuenta"],
-            id_usuario=titular.id_usuario,
-            saldo=datos["saldo"],
-            estado=datos["estado"],
-            fecha_apertura=date.today(),
-            id_usuario_creacion=titular.id_usuario,
-            fecha_creacion=ahora,
-        )
-        session.add(cuenta)
-        cuentas[datos["numero_cuenta"]] = cuenta
-        print(
-            f"  Cuenta '{datos['numero_cuenta']}' creada (tipo: {datos['tipo_cuenta']})."
-        )
-        print(f"  Cuenta '{datos['numero_cuenta']}' creada.")
-
-    session.flush()
-    return cuentas
-
-
-def seed_tarjetas(session, cuentas: dict[str, Cuenta]) -> None:
-    fecha_emision = date(2026, 1, 15)
-    fecha_vencimiento = date(2030, 1, 31)
-    ahora = datetime.now()
-
-    for datos in TARJETAS_SEED:
-        existente = (
-            session.query(Tarjeta)
-            .filter_by(numero_tarjeta=datos["numero_tarjeta"])
-            .first()
-        )
-        if existente:
-            print(f"  Tarjeta '{datos['numero_tarjeta']}' ya existe.")
-            continue
-
-        cuenta = cuentas[datos["numero_cuenta"]]
-        tarjeta = Tarjeta(
-            id_cuenta=cuenta.id_cuenta,
-            numero_tarjeta=datos["numero_tarjeta"],
-            tipo_tarjeta=datos["tipo_tarjeta"],
-            fecha_emision=fecha_emision,
-            fecha_vencimiento=fecha_vencimiento,
-            cvv=datos["cvv"],
-            limite_credito=datos["limite_credito"],
-            estado=datos["estado"],
-            id_usuario_creacion=cuenta.id_usuario,
-            fecha_creacion=ahora,
-        )
-        session.add(tarjeta)
-        print(f"  Tarjeta '{datos['numero_tarjeta']}' creada.")
-
-    session.flush()
-
-
-def seed_acciones(session, usuarios: dict[str, Usuario]) -> None:
-    for datos in ACCIONES_SEED:
-        usuario = usuarios[datos["nombre_usuario"]]
-
-        existente = (
-            session.query(Accion)
-            .filter_by(
+        usuario = usuarios[(indice - 2) % len(usuarios)]
+        tipo = tipos[(indice - 2) % len(tipos)]
+        session.add(
+            Cuenta(
+                numero_cuenta=numero,
                 id_usuario=usuario.id_usuario,
-                tipo_accion=datos["tipo_accion"],
-                ip_origen=datos["ip_origen"],
+                id_usuario_creacion=usuario.id_usuario,
+                id_tipo_cuenta=tipo.id_tipo_cuenta,
+                saldo=float(((indice * 137_000) % 8_000_000) + 50_000),
+                estado="Activa",
+                fecha_apertura=date.today() - timedelta(days=indice * 4),
+                fecha_creacion=datetime.now(),
             )
-            .first()
         )
-        if existente:
-            print(
-                f"  Accion '{datos['tipo_accion']}' para '{datos['nombre_usuario']}' ya existe."
+        session.flush()
+
+    return session.query(Cuenta).order_by(Cuenta.numero_cuenta).all()
+
+
+def _sembrar_tarjetas(session, cuentas: list[Cuenta]) -> None:
+    indice = 1
+    hoy = date.today()
+    vencimiento = date(hoy.year + 4, hoy.month, min(hoy.day, 28))
+    while _contar(session, Tarjeta) < MINIMO_POR_ENTIDAD:
+        numero = f"99990000{indice:08d}"
+        indice += 1
+        if session.query(Tarjeta).filter_by(numero_tarjeta=numero).first():
+            continue
+
+        cuenta = cuentas[(indice - 2) % len(cuentas)]
+        credito = indice % 2 == 0
+        session.add(
+            Tarjeta(
+                id_cuenta=cuenta.id_cuenta,
+                numero_tarjeta=numero,
+                tipo_tarjeta="credito" if credito else "debito",
+                fecha_emision=hoy,
+                fecha_vencimiento=vencimiento,
+                cvv="000",
+                limite_credito=1_000_000.0 if credito else 0.0,
+                estado="Activa",
+                id_usuario_creacion=cuenta.id_usuario,
             )
-            continue
-
-        accion = Accion(
-            id_usuario=usuario.id_usuario,
-            tipo_accion=datos["tipo_accion"],
-            descripcion=datos["descripcion"],
-            ip_origen=datos["ip_origen"],
-            resultado=datos["resultado"],
-            fecha_accion=date.today(),
         )
-        session.add(accion)
-        print(
-            f"  Accion '{datos['tipo_accion']}' para '{datos['nombre_usuario']}' creada."
-        )
-
-    session.flush()
+        session.flush()
 
 
-def seed_sedes(session, usuarios: dict[str, Usuario]) -> None:
-    for datos in SEDES_SEED:
-        existente = session.query(Sede).filter_by(nombre=datos["nombre"]).first()
-        if existente:
-            print(f"  Sede '{datos['nombre']}' ya existe.")
-            continue
-
-        usuario_creador = usuarios[datos["nombre_usuario_creador"]]
-
-        sede = Sede(
-            nombre=datos["nombre"],
-            direccion=datos["direccion"],
-            ciudad=datos["ciudad"],
-            telefono=datos["telefono"],
-            id_usuario_creacion=usuario_creador.id_usuario,
-            fecha_creacion=date.today(),
-        )
-        session.add(sede)
-        print(f"  Sede '{datos['nombre']}' creada.")
-
-    session.flush()
-
-
-def seed_sucursales(session, usuario_creacion: Usuario) -> dict[str, Sucursal]:
-    sucursales: dict[str, Sucursal] = {}
-    for datos in SUCURSALES_SEED:
-        existente = session.query(Sucursal).filter_by(nombre=datos["nombre"]).first()
-        if existente:
-            print(f"  Sucursal '{datos['nombre']}' ya existe.")
-            sucursales[datos["nombre"]] = existente
-            continue
-
-        sucursal = Sucursal(
-            **datos,
-            id_usuario_creacion=usuario_creacion.id_usuario,
-        )
-        session.add(sucursal)
-        sucursales[datos["nombre"]] = sucursal
-        print(f"  Sucursal '{datos['nombre']}' creada.")
-
-    session.flush()
-    return sucursales
-
-
-def seed_empleados(
-    session, usuarios: dict[str, Usuario], sucursales: dict[str, Sucursal]
+def _sembrar_empleados(
+    session, usuarios: list[Usuario], sucursales: list[Sucursal]
 ) -> None:
-    for datos in EMPLEADOS_SEED:
-        usuario = usuarios[datos["nombre_usuario"]]
-        sucursal = sucursales[datos["nombre_sucursal"]]
-        existente = (
-            session.query(Empleado)
-            .filter_by(id_usuario=usuario.id_usuario, id_sucursal=sucursal.id_sucursal)
-            .first()
+    existentes = {
+        (fila.id_usuario, fila.id_sucursal)
+        for fila in session.query(Empleado.id_usuario, Empleado.id_sucursal).all()
+    }
+    cargos = ["Asesor", "Cajero", "Analista", "Coordinador", "Gerente"]
+    for usuario in usuarios:
+        for sucursal in sucursales:
+            if _contar(session, Empleado) >= MINIMO_POR_ENTIDAD:
+                return
+            llave = (usuario.id_usuario, sucursal.id_sucursal)
+            if llave in existentes:
+                continue
+            session.add(
+                Empleado(
+                    id_usuario=usuario.id_usuario,
+                    id_sucursal=sucursal.id_sucursal,
+                    cargo=cargos[_contar(session, Empleado) % len(cargos)],
+                    activo=True,
+                    id_usuario_creacion=usuario.id_usuario,
+                )
+            )
+            existentes.add(llave)
+            session.flush()
+
+
+def _sembrar_cuotas(session, usuarios: list[Usuario]) -> None:
+    indice = 1
+    while _contar(session, Cuota) < MINIMO_POR_ENTIDAD:
+        numero = (indice - 1) % 10 + 1
+        id_prestamo = uuid5(
+            NAMESPACE_URL,
+            f"banco-itm-semilla-prestamo-{(indice - 1) // 10 + 1}",
         )
-        if existente:
-            print(f"  Empleado '{datos['nombre_usuario']}' ya existe.")
-            continue
-
-        empleado = Empleado(
-            id_usuario=usuario.id_usuario,
-            id_sucursal=sucursal.id_sucursal,
-            cargo=datos["cargo"],
-            id_usuario_creacion=usuario.id_usuario,
-        )
-        session.add(empleado)
-        print(f"  Empleado '{datos['nombre_usuario']}' creado.")
-
-    session.flush()
-
-
-def seed_cuotas(session, usuarios: dict[str, Usuario]) -> None:
-    for datos in CUOTAS_SEED:
-        usuario = usuarios[datos["nombre_usuario"]]
-        existente = (
+        indice += 1
+        if (
             session.query(Cuota)
-            .filter_by(
-                id_prestamo=datos["id_prestamo"],
-                numero_cuota=datos["numero_cuota"],
-            )
+            .filter_by(id_prestamo=id_prestamo, numero_cuota=numero)
             .first()
-        )
-        if existente:
-            print(
-                f"  Cuota {datos['numero_cuota']} del prestamo "
-                f"'{datos['id_prestamo']}' ya existe."
-            )
+        ):
             continue
 
-        cuota = Cuota(
-            id_prestamo=datos["id_prestamo"],
-            numero_cuota=datos["numero_cuota"],
-            valor=datos["valor"],
-            fecha_vencimiento=datos["fecha_vencimiento"],
-            estado=datos["estado"],
-            id_usuario_creacion=usuario.id_usuario,
+        session.add(
+            Cuota(
+                id_prestamo=id_prestamo,
+                numero_cuota=numero,
+                valor=float(150_000 + numero * 25_000),
+                fecha_vencimiento=date.today() + timedelta(days=30 * numero),
+                estado="pendiente" if numero % 3 else "pagada",
+                id_usuario_creacion=usuarios[(indice - 2) % len(usuarios)].id_usuario,
+            )
         )
-        session.add(cuota)
-        print(f"  Cuota {datos['numero_cuota']} creada.")
-
-    session.flush()
+        session.flush()
 
 
-def seed() -> None:
+def _sembrar_acciones(session, usuarios: list[Usuario]) -> None:
+    indice = 1
+    while _contar(session, Accion) < MINIMO_POR_ENTIDAD:
+        tipo = f"Operacion semilla {indice:03d}"
+        ip_origen = f"198.51.100.{indice}"
+        indice += 1
+        if (
+            session.query(Accion)
+            .filter_by(tipo_accion=tipo, ip_origen=ip_origen)
+            .first()
+        ):
+            continue
+
+        session.add(
+            Accion(
+                id_usuario=usuarios[(indice - 2) % len(usuarios)].id_usuario,
+                tipo_accion=tipo,
+                descripcion=f"Registro de auditoría de demostración {indice - 1:03d}",
+                ip_origen=ip_origen,
+                resultado="Error" if indice % 7 == 0 else "Exito",
+                fecha_accion=date.today() - timedelta(days=indice % 30),
+            )
+        )
+        session.flush()
+
+
+def seed() -> dict[str, int]:
     Base.metadata.create_all(bind=engine)
     session = get_session()
     try:
-        print("Sembrando usuarios...")
-        usuarios = seed_usuarios(session)
-
-        print("Sembrando tipos de cuenta...")
-        tipos_cuenta = seed_tipos_cuenta(session, usuarios)
-
-        print("Sembrando cuentas...")
-        cuentas = seed_cuentas(session, usuarios, tipos_cuenta)
-
-        print("Sembrando tarjetas...")
-        seed_tarjetas(session, cuentas)
-
-        print("Sembrando acciones...")
-        seed_acciones(session, usuarios)
-
-        print("Sembrando sedes...")
-        seed_sedes(session, usuarios)
-
-        print("Sembrando cuentas...")
-        cuentas = seed_cuentas(session, usuarios)
-        print("Sembrando tarjetas...")
-        seed_tarjetas(session, cuentas)
-        print("Sembrando sucursales...")
-        sucursales = seed_sucursales(session, usuarios["ana.restrepo"])
-        print("Sembrando empleados...")
-        seed_empleados(session, usuarios, sucursales)
-        print("Sembrando cuotas...")
-        seed_cuotas(session, usuarios)
+        usuarios = _sembrar_usuarios(session)
+        tipos = _sembrar_tipos_cuenta(session, usuarios)
+        sucursales = _sembrar_sucursales(session, usuarios)
+        cuentas = _sembrar_cuentas(session, usuarios, tipos)
+        _sembrar_tarjetas(session, cuentas)
+        _sembrar_empleados(session, usuarios, sucursales)
+        _sembrar_cuotas(session, usuarios)
+        _sembrar_acciones(session, usuarios)
         session.commit()
-        print("\nSeeder completado.")
+        return {
+            "usuarios": _contar(session, Usuario),
+            "cuentas": _contar(session, Cuenta),
+            "cuotas": _contar(session, Cuota),
+            "sucursales": _contar(session, Sucursal),
+            "empleados": _contar(session, Empleado),
+            "tarjetas": _contar(session, Tarjeta),
+            "tipos_cuenta": _contar(session, TipoCuenta),
+            "acciones": _contar(session, Accion),
+        }
     except Exception:
         session.rollback()
-        print("\nError en el seeder. Se revirtio la transaccion.")
         raise
     finally:
         session.close()
 
 
-<<<<<<< HEAD
-seed()
-=======
 if __name__ == "__main__":
-    seed()
->>>>>>> a6517e86a0a59fe6e01be82df6eff4c2819af066
+    resultado = seed()
+    for entidad, total in resultado.items():
+        print(f"{entidad}: {total}")

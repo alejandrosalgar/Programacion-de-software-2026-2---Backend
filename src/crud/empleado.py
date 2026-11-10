@@ -47,6 +47,9 @@ def eliminar(id_empleado: UUID) -> bool:
         session.delete(empleado)
         session.commit()
         return True
+    except IntegrityError:
+        session.rollback()
+        return False
     finally:
         session.close()
 

@@ -96,7 +96,13 @@ def actualizar_usuario(id_usuario: UUID, datos: UsuarioUpdate):
 
 @usuarios_router.delete("/{id_usuario}", status_code=HTTPStatus.NO_CONTENT.value)
 def eliminar_usuario(id_usuario: UUID):
+    if usuario_crud.obtener_por_id(id_usuario) is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value,
+            detail="Usuario no encontrado",
+        )
     if not usuario_crud.eliminar(id_usuario):
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado"
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="No se puede eliminar el usuario porque tiene cuentas, tarjetas u otros registros asociados",
         )

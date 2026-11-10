@@ -79,8 +79,13 @@ def actualizar_empleado(id_empleado: UUID, datos: EmpleadoUpdate):
 
 @empleados_router.delete("/{id_empleado}", status_code=HTTPStatus.NO_CONTENT.value)
 def eliminar_empleado(id_empleado: UUID):
-    if not empleado_crud.eliminar(id_empleado):
+    if empleado_crud.obtener(id_empleado) is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value,
             detail="Empleado no encontrado",
+        )
+    if not empleado_crud.eliminar(id_empleado):
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="No se puede eliminar el empleado porque tiene registros asociados",
         )

@@ -21,16 +21,10 @@ cuotas_router = APIRouter(prefix="/cuotas", tags=["cuotas"])
 def get_cuotas() -> Dict[str, Any]:
     cuotas = cuota_crud.listar()
 
-    if not cuotas:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND.value,
-            detail="No se encontraron cuotas",
-        )
-
     return {
         "data": cuotas,
         "status": HTTPStatus.OK.value,
-        "message": "Cuotas encontradas",
+        "message": "Cuotas encontradas" if cuotas else "No hay cuotas",
     }
 
 
@@ -85,8 +79,13 @@ def actualizar_cuota(id_cuota: UUID, datos: CuotaUpdate):
 
 @cuotas_router.delete("/{id_cuota}", status_code=HTTPStatus.NO_CONTENT.value)
 def eliminar_cuota(id_cuota: UUID):
-    if not cuota_crud.eliminar(id_cuota):
+    if cuota_crud.obtener(id_cuota) is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value,
             detail="Cuota no encontrada",
+        )
+    if not cuota_crud.eliminar(id_cuota):
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="No se puede eliminar la cuota porque tiene registros asociados",
         )
